@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Counter-Strike 1.6 Web — Trac Studios</title>
+  <link rel="icon" type="image/png" href="cs16-web-main/docs/img/map-picker.png">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #000000;
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      height: 54px;
+      background: #080808;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo-badge {
+      background: #ffffff;
+      color: #000000;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+    }
+
+    .title {
+      font-weight: 800;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ffffff;
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 245, 212, 0.1);
+      border: 1px solid rgba(0, 245, 212, 0.3);
+      color: #00f5d4;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background: #00f5d4;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #00f5d4;
+    }
+
+    .server-tabs {
+      display: flex;
+      align-items: center;
+      background: #111115;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 4px;
+    }
+
+    .server-tab {
+      background: transparent;
+      color: #94a3b8;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+    }
+
+    .server-tab.active {
+      background: #22222a;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .server-tab:hover:not(.active) {
+      color: #ffffff;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      background: #141418;
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: #202026;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-panic {
+      background: #2a1114;
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    .btn-panic:hover {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
+    /* Game Container */
+    #game-container {
+      flex: 1;
+      position: relative;
+      background: #000000;
+      width: 100%;
+      height: calc(100vh - 54px);
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      background: #000000;
+    }
+
+    /* LAN Setup Banner (if running local docker) */
+    #lan-banner {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(12, 12, 16, 0.94);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 13px;
+      color: #e2e8f0;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      z-index: 50;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
+      max-width: 600px;
+      width: 90%;
+    }
+
+    #lan-banner input {
+      background: #000;
+      border: 1px solid #333;
+      color: #00f5d4;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      width: 170px;
+      outline: none;
+    }
+
+    /* Floating Controls Bar at Bottom */
+    .controls-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 10, 14, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      pointer-events: none;
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    .controls-hint kbd {
+      background: #1e1e24;
+      color: #ffffff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Panic Screen (Fake VS Code Homework) */
+    #panic-screen {
+      position: fixed;
+      inset: 0;
+      background: #1e1e1e;
+      z-index: 99999;
+      display: none;
+      flex-direction: column;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      color: #d4d4d4;
+      user-select: text;
+    }
+
+    .vscode-top {
+      height: 35px;
+      background: #2d2d2d;
+      border-bottom: 1px solid #1e1e1e;
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #cccccc;
+    }
+
+    .vscode-editor {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      line-height: 1.6;
+      white-space: pre;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <a href="index.html" class="brand">
+      <div class="logo-badge">TRAC</div>
+      <div class="title">
+        Counter-Strike 1.6
+        <span class="live-badge">
+          <span class="live-dot"></span> WEB EDİTİON
+        </span>
+      </div>
+    </a>
+
+    <!-- Server Mode Tabs -->
+    <div class="server-tabs">
+      <button class="server-tab active" id="tab-web" onclick="switchServerMode('web')">
+        <span>🌐</span> Çok Oyunculu (WebRTC)
+      </button>
+      <button class="server-tab" id="tab-lan" onclick="switchServerMode('lan')">
+        <span>🖥️</span> cs16-web LAN Sunucusu
+      </button>
+      <button class="server-tab" id="tab-practice" onclick="switchServerMode('practice')">
+        <span>🎯</span> Poligon (Solo)
+      </button>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn btn-panic" onclick="triggerPanic()" title="Hoca gelince bas! (Kısayol: H)">
+        <span>🚨</span> Hoca Geldi (H)
+      </button>
+      <button class="btn" onclick="toggleFullScreen()" title="Tam Ekran">
+        <span>⛶</span>
+      </button>
+      <a href="index.html" class="btn">
+        <span>✕</span> Portal
+      </a>
+    </div>
+  </header>
+
+  <!-- Game Container -->
+  <div id="game-container">
+    <iframe id="game-frame" src="Counter-Strike-master/www/index.html?mode=p2p&role=host" allow="autoplay; fullscreen; pointer-lock"></iframe>
+
+    <!-- LAN Server Custom IP Prompt -->
+    <div id="lan-banner">
+      <span>🖥️ <b>cs16-web-main</b> Yerel Sunucu Adresi:</span>
+      <input type="text" id="lan-ip-input" value="http://localhost:27016" placeholder="http://192.168.1.x:27016">
+      <button class="btn" onclick="connectCustomLan()" style="background:#00f5d4;color:#000;border:none;font-weight:700;">Bağlan</button>
+      <button class="btn" onclick="document.getElementById('lan-banner').style.display='none'">✕</button>
+    </div>
+
+    <!-- Bottom Controls Hint -->
+    <div class="controls-hint">
+      <span><kbd>WASD</kbd> Yürü</span>
+      <span><kbd>Fare</kbd> Nişan & Ateş</span>
+      <span><kbd>B</kbd> Market</span>
+      <span><kbd>1-2-3</kbd> Silah Seç</span>
+      <span><kbd>R</kbd> Şarjör</span>
+      <span><kbd>Ctrl</kbd> Çömel</span>
+      <span><kbd>H</kbd> 🚨 Acil Gizle</span>
+    </div>
+  </div>
+
+  <!-- Fake Homework Panic Screen -->
+  <div id="panic-screen">
+    <div class="vscode-top">
+      <span>📄 main.py — Bilişim Teknolojileri ve Ağ Yönetimi Dersi Proje Ödevi</span>
+      <span style="color:#888;">Kaydedildi • Python 3.11</span>
+    </div>
+    <div class="vscode-editor">
+<span style="color:#6a9955;"># ========================================================
+# BİLİŞİM TEKNOLOJİLERİ VE YAZILIM ALANI PROJESİ
+# Konu: Dağıtık Ağ Sistemleri ve Çok Oyunculu Paket İletimi
+# Öğrenci: Trac Studios
+# ========================================================</span>
+
+<span style="color:#569cd6;">import</span> <span style="color:#4ec9b0;">socket</span>
+<span style="color:#569cd6;">import</span> <span style="color:#4ec9b0;">time</span>
+<span style="color:#569cd6;">import</span> <span style="color:#4ec9b0;">threading</span>
+
+<span style="color:#569cd6;">class</span> <span style="color:#4ec9b0;">AgSunucuIletisimTesti</span>:
+    <span style="color:#569cd6;">def</span> <span style="color:#dcdcaa;">__init__</span>(<span style="color:#9cdcfe;">self</span>, <span style="color:#9cdcfe;">host</span>=<span style="color:#ce9178;">"127.0.0.1"</span>, <span style="color:#9cdcfe;">port</span>=27016):
+        <span style="color:#9cdcfe;">self</span>.<span style="color:#9cdcfe;">host</span> = <span style="color:#9cdcfe;">host</span>
+        <span style="color:#9cdcfe;">self</span>.<span style="color:#9cdcfe;">port</span> = <span style="color:#9cdcfe;">port</span>
+        <span style="color:#9cdcfe;">self</span>.<span style="color:#9cdcfe;">durum</span> = <span style="color:#ce9178;">"BAGLI"</span>
+
+    <span style="color:#569cd6;">def</span> <span style="color:#dcdcaa;">ping_olcumu</span>(<span style="color:#9cdcfe;">self</span>):
+        <span style="color:#9cdcfe;">t0</span> = <span style="color:#4ec9b0;">time</span>.<span style="color:#dcdcaa;">time</span>()
+        <span style="color:#dcdcaa;">print</span>(<span style="color:#ce9178;">f"[AG PROTOKOLÜ] Paket iletiliyor -> {self.host}:{self.port}"</span>)
+        <span style="color:#569cd6;">return</span> (<span style="color:#4ec9b0;">time</span>.<span style="color:#dcdcaa;">time</span>() - <span style="color:#9cdcfe;">t0</span>) * 1000
+
+<span style="color:#6a9955;"># Ağ soket dinleyicisi başlatıldı...</span>
+<span style="color:#9cdcfe;">test</span> = <span style="color:#4ec9b0;">AgSunucuIletisimTesti</span>()
+<span style="color:#dcdcaa;">print</span>(<span style="color:#ce9178;">f"Sistem hazır. Gecikme süresi: {test.ping_olcumu():.2f} ms"</span>)
+    </div>
+  </div>
+
+  <script>
+    const iframe = document.getElementById('game-frame');
+    const lanBanner = document.getElementById('lan-banner');
+
+    function switchServerMode(mode) {
+      document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + mode).classList.add('active');
+
+      if (mode === 'web') {
+        lanBanner.style.display = 'none';
+        iframe.src = 'Counter-Strike-master/www/index.html?mode=p2p&room=TRAC-CS&role=host';
+      } else if (mode === 'lan') {
+        lanBanner.style.display = 'flex';
+        const customIp = document.getElementById('lan-ip-input').value.trim() || 'http://localhost:27016';
+        iframe.src = customIp;
+      } else if (mode === 'practice') {
+        lanBanner.style.display = 'none';
+        iframe.src = 'Counter-Strike-master/www/index.html?mode=practice';
+      }
+    }
+
+    function connectCustomLan() {
+      const url = document.getElementById('lan-ip-input').value.trim();
+      if (url) {
+        iframe.src = url;
+      }
+    }
+
+    // Fullscreen Toggle
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+
+    // Teacher Panic Mode (H key)
+    let panicActive = false;
+    const panicScreen = document.getElementById('panic-screen');
+
+    function triggerPanic() {
+      panicActive = !panicActive;
+      panicScreen.style.display = panicActive ? 'flex' : 'none';
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'h' || e.key === 'H') {
+        triggerPanic();
+      }
+    });
+  </script>
+</body>
+</html>
