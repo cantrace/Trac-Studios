@@ -302,7 +302,7 @@
 
   <!-- Game Iframe Container -->
   <div id="game-container">
-    <iframe id="game-frame" src="Counter-Strike-master/www/index.html" allow="autoplay; fullscreen; pointer-lock"></iframe>
+    <iframe id="game-frame" src="about:blank" allow="autoplay; fullscreen; pointer-lock"></iframe>
 
     <div class="controls-hint">
       <span><kbd>WASD</kbd> Yürü</span>
@@ -371,6 +371,8 @@
     if (roomFromUrl) {
       roomInput.value = roomFromUrl;
       launchMode(modeFromUrl || 'p2p-guest');
+    } else {
+      launchMode('practice');
     }
 
     function launchMode(mode) {

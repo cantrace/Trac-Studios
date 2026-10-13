@@ -47,6 +47,7 @@ export class LocalSimulatorConnector {
     #tick = 0;
     #roundStarted = false;
     #queuedEvents = [];
+    #lobbyEl = null;
 
     constructor(game, joinUrl = '') {
         this.#game = game;
@@ -54,6 +55,7 @@ export class LocalSimulatorConnector {
     }
 
     close() {
+        this.#hideLobbyOverlay();
         if (this.#loopIntervalId) {
             clearInterval(this.#loopIntervalId);
             this.#loopIntervalId = null;
@@ -88,7 +90,51 @@ export class LocalSimulatorConnector {
         }
     }
 
+    #showLobbyOverlay(title, roomCode, statusHtml, buttonsHtml = '') {
+        this.#hideLobbyOverlay();
+        const el = document.createElement('div');
+        el.id = 'trac-cs-lobby';
+        el.style.cssText = 'position:fixed;inset:0;background:rgba(8,12,22,0.95);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;z-index:999999;font-family:sans-serif;color:#f1f5f9;';
+        el.innerHTML = `
+            <div style="max-width:460px;width:90%;background:#0f172a;border:1px solid rgba(0,245,212,0.3);border-radius:18px;padding:32px 24px;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,0.8);">
+                <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:6px;">${title}</div>
+                <div style="font-size:12px;color:#94a3b8;margin-bottom:12px;">Counter-Strike 3D • WebRTC Çok Oyunculu</div>
+                <div style="background:rgba(0,245,212,0.08);border:1px solid rgba(0,245,212,0.4);color:#00f5d4;font-family:monospace;font-size:26px;font-weight:900;letter-spacing:2px;padding:8px 18px;border-radius:10px;display:inline-block;margin-bottom:16px;">
+                    ${roomCode}
+                </div>
+                <div id="cs-lobby-status" style="font-size:13.5px;color:#cbd5e1;line-height:1.6;margin-bottom:20px;">
+                    ${statusHtml}
+                </div>
+                <div id="cs-lobby-buttons" style="display:flex;flex-direction:column;gap:10px;">
+                    ${buttonsHtml}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(el);
+        this.#lobbyEl = el;
+    }
+
+    #updateLobbyStatus(statusHtml, buttonsHtml = null) {
+        if (!this.#lobbyEl) return;
+        const sEl = this.#lobbyEl.querySelector('#cs-lobby-status');
+        if (sEl) sEl.innerHTML = statusHtml;
+        if (buttonsHtml !== null) {
+            const bEl = this.#lobbyEl.querySelector('#cs-lobby-buttons');
+            if (bEl) bEl.innerHTML = buttonsHtml;
+        }
+    }
+
+    #hideLobbyOverlay() {
+        if (this.#lobbyEl) {
+            this.#lobbyEl.remove();
+            this.#lobbyEl = null;
+        }
+        const existing = document.getElementById('trac-cs-lobby');
+        if (existing) existing.remove();
+    }
+
     #initPractice() {
+        this.#hideLobbyOverlay();
         console.log("[CS-Simulator] Initializing Solo Practice / Target Range Mode...");
         this.#playerId = 1;
         this.#playerPos = { x: 4498, y: 1198, z: 1775 };
@@ -104,6 +150,7 @@ export class LocalSimulatorConnector {
         ];
 
         this.#startSimulation();
+        this.#startRoundNow();
     }
 
     #initP2P(roomCode) {
@@ -119,76 +166,185 @@ export class LocalSimulatorConnector {
             this.#playerMe = this.#createDefaultPlayerData(2, 2, false, this.#playerPos);
         }
 
-        // Setup PeerJS if available
-        if (typeof window.Peer !== 'undefined') {
-            const peerIdPrefix = "traccs-p2p-";
-            const myPeerId = this.#isHost ? `${peerIdPrefix}${cleanRoomCode}` : undefined;
+        const peerIdPrefix = "traccs-p2p-";
+        const peerConfig = {
+            debug: 1,
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' }
+                ]
+            }
+        };
+
+        const copyShareLink = () => {
+            const shareUrl = window.location.origin + window.location.pathname.replace('/Counter-Strike-master/www/index.html', '') + '/cs.html?room=' + cleanRoomCode + '&mode=p2p-guest';
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert('Oda linki kopyalandı! Arkadaşına gönder:\n' + shareUrl);
+            }).catch(() => {
+                prompt('Oda linki:', shareUrl);
+            });
+        };
+
+        if (this.#isHost) {
+            // HOST FLOW
+            this.#showLobbyOverlay(
+                '👑 ODA KURULDU',
+                cleanRoomCode,
+                '⏳ <b>WebRTC sunucusuna bağlanılıyor...</b>',
+                `<button id="cs-copy-link" style="background:#1e293b;border:1px solid #334155;color:#f1f5f9;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">🔗 Oda Linkini Kopyala</button>
+                 <button id="cs-play-solo" style="background:#00f5d4;color:#0f172a;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">🎯 Beklerken Botlarla Poligona Gir</button>`
+            );
+
+            setTimeout(() => {
+                const copyBtn = document.getElementById('cs-copy-link');
+                if (copyBtn) copyBtn.onclick = copyShareLink;
+                const soloBtn = document.getElementById('cs-play-solo');
+                if (soloBtn) soloBtn.onclick = () => this.#initPractice();
+            }, 50);
 
             try {
-                this.#peer = new window.Peer(myPeerId, {
-                    debug: 1,
-                    config: {
-                        iceServers: [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:stun1.l.google.com:19302' },
-                            { urls: 'stun:stun2.l.google.com:19302' },
-                            { urls: 'stun:stun3.l.google.com:19302' },
-                            { urls: 'stun:stun4.l.google.com:19302' }
-                        ]
-                    }
+                this.#peer = new window.Peer(peerIdPrefix + cleanRoomCode, peerConfig);
+
+                this.#peer.on('open', (id) => {
+                    console.log("[CS-P2P] Host Peer Open with ID:", id);
+                    this.#updateLobbyStatus(
+                        '🟢 <b>Oda Hazır!</b><br>Arkadaşınızın <b>' + cleanRoomCode + '</b> kodunu girip <b>"Katıl"</b> butonuna basması bekleniyor...'
+                    );
                 });
 
-                if (this.#isHost) {
-                    this.#peer.on('connection', (conn) => {
-                        console.log("[CS-P2P] Guest connected!");
-                        this.#conn = conn;
-                        this.#setupDataConnection();
-                    });
-                } else {
-                    this.#peer.on('open', () => {
-                        const targetId = `${peerIdPrefix}${cleanRoomCode}`;
-                        console.log(`[CS-P2P] Connecting to host: ${targetId}`);
-                        this.#conn = this.#peer.connect(targetId, { reliable: true });
-                        this.#setupDataConnection();
-                    });
-                }
+                this.#peer.on('connection', (conn) => {
+                    console.log("[CS-P2P] Guest connected!");
+                    this.#conn = conn;
+                    this.#updateLobbyStatus('🎮 <b>Arkadaşınız odaya bağlandı!</b><br>3D Maç Başlatılıyor...');
+                    this.#setupDataConnection();
+                    setTimeout(() => {
+                        this.#hideLobbyOverlay();
+                        this.#startSimulation();
+                    }, 1000);
+                });
 
                 this.#peer.on('error', (err) => {
-                    console.warn("[CS-P2P] PeerJS error:", err);
-                    if ((err.type === 'unavailable-id' || err.message?.includes('is taken')) && this.#isHost) {
-                        console.log("[CS-P2P] Host ID taken, falling back to Guest connection...");
-                        try { this.#peer.destroy(); } catch (e) {}
-                        this.#isHost = false;
-                        this.#playerId = 2;
-                        this.#playerMe.id = 2;
-                        this.#playerMe.isAttacker = false;
-                        this.#playerMe.color = 2;
-                        this.#playerPos = { x: 4520, y: 1198, z: 2350 };
-                        const guestPeer = new window.Peer(undefined, {
-                            debug: 1,
-                            config: {
-                                iceServers: [
-                                    { urls: 'stun:stun.l.google.com:19302' },
-                                    { urls: 'stun:stun1.l.google.com:19302' },
-                                    { urls: 'stun:stun2.l.google.com:19302' }
-                                ]
-                            }
-                        });
-                        guestPeer.on('open', () => {
-                            this.#peer = guestPeer;
-                            const targetId = `${peerIdPrefix}${cleanRoomCode}`;
-                            console.log(`[CS-P2P] Guest connecting to host: ${targetId}`);
-                            this.#conn = guestPeer.connect(targetId, { reliable: true });
-                            this.#setupDataConnection();
-                        });
+                    console.warn("[CS-P2P] Host PeerJS error:", err);
+                    if (err.type === 'unavailable-id' || err.message?.includes('is taken')) {
+                        this.#updateLobbyStatus(
+                            '⚠️ <b>"' + cleanRoomCode + '" oda kodu şu an kullanımda!</b><br>Arkadaşınız odayı sizden önce kurmuş olabilir.',
+                            `<button id="cs-switch-guest" style="background:#00f5d4;color:#0f172a;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">🚀 Odaya Katılan Olarak Bağlan</button>
+                             <button id="cs-host-solo" style="background:#1e293b;border:1px solid #334155;color:#f1f5f9;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">🎯 Solo Poligona Gir</button>`
+                        );
+                        setTimeout(() => {
+                            const swBtn = document.getElementById('cs-switch-guest');
+                            if (swBtn) swBtn.onclick = () => {
+                                try { this.#peer.destroy(); } catch (e) {}
+                                this.#isHost = false;
+                                this.#initP2P(cleanRoomCode);
+                            };
+                            const slBtn = document.getElementById('cs-host-solo');
+                            if (slBtn) slBtn.onclick = () => this.#initPractice();
+                        }, 50);
                     }
                 });
             } catch (e) {
-                console.warn("[CS-P2P] Failed to initialize PeerJS, continuing local:", e);
+                console.warn("[CS-P2P] Host error:", e);
+                this.#updateLobbyStatus('Bağlantı hatası: ' + e.message);
+            }
+
+        } else {
+            // GUEST FLOW
+            let attempts = 0;
+            const maxAttempts = 8;
+            let connected = false;
+
+            this.#showLobbyOverlay(
+                '🚀 ODAYA BAĞLANILIYOR',
+                cleanRoomCode,
+                '📡 <b>Oda aranıyor ve kurucuya bağlanılıyor...</b>',
+                `<button id="cs-become-host" style="background:#1e293b;border:1px solid #334155;color:#f1f5f9;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">👑 Odayı Ben Kurayım</button>
+                 <button id="cs-guest-solo" style="background:#00f5d4;color:#0f172a;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">🎯 Solo Poligona Gir</button>`
+            );
+
+            setTimeout(() => {
+                const bhBtn = document.getElementById('cs-become-host');
+                if (bhBtn) bhBtn.onclick = () => {
+                    try { if (this.#peer) this.#peer.destroy(); } catch (e) {}
+                    this.#isHost = true;
+                    this.#initP2P(cleanRoomCode);
+                };
+                const gsBtn = document.getElementById('cs-guest-solo');
+                if (gsBtn) gsBtn.onclick = () => this.#initPractice();
+            }, 50);
+
+            try {
+                this.#peer = new window.Peer(undefined, peerConfig);
+
+                const tryConnect = () => {
+                    if (connected || !this.#peer) return;
+                    attempts++;
+                    this.#updateLobbyStatus(`📡 <b>Oda aranıyor...</b> (Deneme ${attempts}/${maxAttempts})<br>Arkadaşınızın odayı kurması bekleniyor...`);
+
+                    const targetId = peerIdPrefix + cleanRoomCode;
+                    console.log(`[CS-P2P] Guest connecting to host: ${targetId} (Attempt ${attempts})`);
+                    const conn = this.#peer.connect(targetId, { reliable: true });
+
+                    conn.on('open', () => {
+                        connected = true;
+                        this.#conn = conn;
+                        console.log("[CS-P2P] Guest connected successfully!");
+                        this.#updateLobbyStatus('🎉 <b>Odaya Başarıyla Bağlandınız!</b><br>3D Maç Başlatılıyor...');
+                        this.#setupDataConnection();
+                        setTimeout(() => {
+                            this.#hideLobbyOverlay();
+                            this.#startSimulation();
+                        }, 1000);
+                    });
+
+                    conn.on('error', (err) => {
+                        console.warn("[CS-P2P] Conn error:", err);
+                    });
+
+                    if (!connected && attempts < maxAttempts) {
+                        setTimeout(tryConnect, 1800);
+                    } else if (!connected && attempts >= maxAttempts) {
+                        setTimeout(() => {
+                            if (!connected) {
+                                this.#updateLobbyStatus(
+                                    `❌ <b>"${cleanRoomCode}" kodlu oda bulunamadı!</b><br><br>Arkadaşınız henüz odayı kurmamış veya kod yanlış olabilir.<br>Odayı ilk kuran kişinin <b>"Oda Kur"</b> butonuna basması gerekir.`,
+                                    `<button id="cs-retry-join" style="background:#00f5d4;color:#0f172a;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">🔄 Tekrar Dene</button>
+                                     <button id="cs-retry-host" style="background:#1e293b;border:1px solid #334155;color:#f1f5f9;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">👑 Odayı Ben Kurayım</button>
+                                     <button id="cs-retry-solo" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">🎯 Solo Poligona Gir</button>`
+                                );
+                                setTimeout(() => {
+                                    const rj = document.getElementById('cs-retry-join');
+                                    if (rj) rj.onclick = () => { attempts = 0; tryConnect(); };
+                                    const rh = document.getElementById('cs-retry-host');
+                                    if (rh) rh.onclick = () => {
+                                        try { if (this.#peer) this.#peer.destroy(); } catch (e) {}
+                                        this.#isHost = true;
+                                        this.#initP2P(cleanRoomCode);
+                                    };
+                                    const rs = document.getElementById('cs-retry-solo');
+                                    if (rs) rs.onclick = () => this.#initPractice();
+                                }, 50);
+                            }
+                        }, 2000);
+                    }
+                };
+
+                this.#peer.on('open', () => {
+                    tryConnect();
+                });
+
+                this.#peer.on('error', (err) => {
+                    console.warn("[CS-P2P] Guest PeerJS error:", err);
+                });
+            } catch (e) {
+                console.warn("[CS-P2P] Guest init error:", e);
+                this.#updateLobbyStatus('Bağlantı hatası: ' + e.message);
             }
         }
-
-        this.#startSimulation();
     }
 
     #setupDataConnection() {
@@ -212,6 +368,11 @@ export class LocalSimulatorConnector {
             } else if (data.type === 'hit') {
                 this.#takeDamage(data.damage, data.attackerId, data.headshot, data.itemId);
             }
+        });
+
+        this.#conn.on('close', () => {
+            console.log("[CS-P2P] Peer disconnected!");
+            alert("🔴 Rakip oyundan ayrıldı!");
         });
     }
 
