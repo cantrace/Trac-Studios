@@ -349,7 +349,16 @@
 
       // 3. Lobby Modal
       const modalHtml = `
-        <div id="trac-fps-modal" style="position:fixed;inset:0;background:rgba(7,10,20,0.88);backdrop-filter:blur(10px);z-index:9999999;display:none;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',Segoe UI,sans-serif;">
+        <style>
+          #trac-fps-modal, #trac-fps-modal *, #trac-fps-nav, #trac-fps-nav *, #trac-fps-chat-wrap, #trac-fps-chat-wrap * {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+            letter-spacing: normal !important;
+          }
+          #trac-fps-modal input {
+            font-family: monospace, sans-serif !important;
+          }
+        </style>
+        <div id="trac-fps-modal" style="position:fixed;inset:0;background:rgba(7,10,20,0.88);backdrop-filter:blur(10px);z-index:9999999;display:none;align-items:center;justify-content:center;">
           <div style="background:#0f172a;border:2px solid #00f5d4;border-radius:20px;padding:28px;width:480px;max-width:92vw;color:#fff;box-shadow:0 0 50px rgba(0,245,212,0.35);">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
               <h2 style="margin:0;font-size:22px;color:#00f5d4;display:flex;align-items:center;gap:10px;">

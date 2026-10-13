@@ -175,6 +175,7 @@
     checkUrlParams() {
       const params = new URLSearchParams(window.location.search);
       const roomParam = params.get('room');
+      const roleParam = params.get('role');
       const nameParam = params.get('name');
       if (nameParam) {
         this.myName = nameParam;
@@ -182,8 +183,17 @@
       }
       if (roomParam) {
         setTimeout(() => {
-          this.joinRoom(roomParam.toUpperCase());
-        }, 800);
+          if (roleParam === 'host') {
+            this.hostRoom(roomParam.toUpperCase());
+          } else {
+            this.joinRoom(roomParam.toUpperCase());
+          }
+        }, 600);
+      } else {
+        // Automatically open multiplayer room modal on startup!
+        setTimeout(() => {
+          this.openMultiplayerModal();
+        }, 500);
       }
     },
 
@@ -671,6 +681,12 @@
               <input type="text" id="trac-join-code" placeholder="Örn: TRAC-842" style="width:100%;box-sizing:border-box;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 14px;color:#fff;font-size:14px;text-transform:uppercase;margin-bottom:16px;">
               <button onclick="Multiplayer.onJoinSubmit()" style="width:100%;background:linear-gradient(135deg, #7928ca, #4361ee);border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:bold;color:#fff;cursor:pointer;box-shadow:0 4px 15px rgba(121,40,202,0.4);">
                 Odaya Bağlan
+              </button>
+            </div>
+
+            <div style="margin-top:14px;padding-top:12px;border-top:1px solid #1f293d;text-align:center;">
+              <button onclick="Multiplayer.closeMultiplayerModal()" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;text-decoration:underline;">
+                ⛏️ Çok Oyunculu İstemiyorum, Tek Başıma Oyna
               </button>
             </div>
 

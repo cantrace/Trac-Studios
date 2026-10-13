@@ -262,9 +262,21 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      flex: 1;
+      flex-wrap: wrap;
       justify-content: flex-end;
-      min-width: 280px;
+    }
+
+    .quick-select {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      outline: none;
+      min-width: 175px;
+      cursor: pointer;
     }
 
     .quick-input {
@@ -278,9 +290,20 @@
       font-family: inherit;
       text-transform: uppercase;
       font-weight: 700;
-      width: 140px;
+      width: 120px;
       text-align: center;
       letter-spacing: 1px;
+    }
+
+    .btn-join-guest {
+      background: #1e293b !important;
+      border: 1px solid var(--cyan) !important;
+      color: var(--cyan) !important;
+    }
+
+    .btn-join-guest:hover {
+      background: var(--cyan) !important;
+      color: #080c16 !important;
     }
 
     .quick-input:focus {
@@ -803,14 +826,17 @@
           </div>
         </div>
         <div class="quick-join-inputs">
-          <select id="quick-game-select" class="quick-input" style="width:145px;font-size:12px;padding:9px 10px;">
-            <option value="voxel">⛏️ Voxelcraft</option>
+          <select id="quick-game-select" class="quick-select">
+            <option value="voxel">⛏️ Voxelcraft 3D</option>
             <option value="fps">🎯 FPS2 3D</option>
             <option value="cs">🔫 Counter-Strike 3D</option>
           </select>
           <input type="text" id="quick-room-code" class="quick-input" placeholder="TRAC101" maxlength="10">
-          <button class="btn-quick-join" onclick="quickJoinRoom()">
-            <span>🚀</span> Odaya Gir
+          <button class="btn-quick-join" onclick="quickJoinRoom('host')" title="Oda Kur (Host)">
+            <span>👑</span> Oda Kur
+          </button>
+          <button class="btn-quick-join btn-join-guest" onclick="quickJoinRoom('guest')" title="Odaya Katıl">
+            <span>🚀</span> Katıl
           </button>
         </div>
       </div>
@@ -1204,7 +1230,7 @@
       });
     }
 
-    function quickJoinRoom() {
+    function quickJoinRoom(role = 'guest') {
       const code = document.getElementById('quick-room-code').value.trim();
       const gameType = document.getElementById('quick-game-select').value;
       if (!code) {
@@ -1213,13 +1239,13 @@
       }
       const cleanCode = code.toUpperCase();
       if (gameType === 'fps') {
-        const targetUrl = 'fps2.html?lobby=' + encodeURIComponent(cleanCode) + '&role=guest';
+        const targetUrl = 'fps2.html?lobby=' + encodeURIComponent(cleanCode) + '&role=' + role;
         openGame(targetUrl, 'FPS2 3D (Oda: ' + cleanCode + ')');
       } else if (gameType === 'cs') {
-        const targetUrl = 'cs.html?room=' + encodeURIComponent(cleanCode) + '&mode=p2p-guest';
+        const targetUrl = 'cs.html?room=' + encodeURIComponent(cleanCode) + '&mode=p2p-' + (role === 'host' ? 'host' : 'guest');
         openGame(targetUrl, 'Counter-Strike 3D (Oda: ' + cleanCode + ')');
       } else {
-        const targetUrl = 'voxelcraft-main/index.html?room=' + encodeURIComponent(cleanCode);
+        const targetUrl = 'voxelcraft-main/index.html?room=' + encodeURIComponent(cleanCode) + '&role=' + role;
         openGame(targetUrl, 'Voxelcraft 3D (Oda: ' + cleanCode + ')');
       }
     }

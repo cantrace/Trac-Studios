@@ -160,8 +160,10 @@
         if (modal) modal.remove()
         if (ui) ui.remove()
 
-        console.log("Launching CS game with URL:", url)
-        import("./assets/js/start.js").then(async (ns) => {
+        const baseHref = window.location.href.split('?')[0].replace(/\/[^\/]*$/, '/');
+        const startPath = new URL('assets/js/start.js', baseHref).href;
+        console.log("Launching CS game with URL:", url, "Loading start.js from:", startPath)
+        import(startPath).then(async (ns) => {
             await ns.launchGame(document.body, hud, localStorage.getItem('setting'), url)
         }).catch((error) => {
             console.error("CS launch error:", error)
