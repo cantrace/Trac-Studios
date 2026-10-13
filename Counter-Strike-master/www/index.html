@@ -151,8 +151,8 @@
         joinGameUrl('local://practice?map=default&mode=practice&code=practice')
     }
 
-    function startP2PMode(role) {
-        const roomCode = (document.getElementById('p2p-room-code').value || 'TRAC-CS101').trim()
+    function startP2PMode(role, roomOverride) {
+        const roomCode = (roomOverride || document.getElementById('p2p-room-code').value || 'TRAC-CS101').trim()
         joinGameUrl(`peer://${roomCode}?map=default&mode=p2p&room=${roomCode}&role=${role}&code=room-${roomCode}`)
     }
 
@@ -202,7 +202,7 @@
     } else if (qParams.get('mode') === 'p2p') {
         const r = qParams.get('room') || 'TRAC-CS101';
         const role = qParams.get('role') || 'host';
-        startP2PMode(role);
+        startP2PMode(role, r);
     } else if (qParams.get('ws')) {
         joinGameUrl(decodeURIComponent(qParams.get('ws')));
     } else if (window.location.search === '?dev-join') {

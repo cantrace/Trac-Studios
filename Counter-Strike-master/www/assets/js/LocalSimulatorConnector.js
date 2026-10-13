@@ -45,6 +45,8 @@ export class LocalSimulatorConnector {
     #bots = [];
     #peerPlayer = null;
     #tick = 0;
+    #roundStarted = false;
+    #queuedEvents = [];
 
     constructor(game, joinUrl = '') {
         this.#game = game;
@@ -105,7 +107,8 @@ export class LocalSimulatorConnector {
     }
 
     #initP2P(roomCode) {
-        console.log(`[CS-Simulator] Initializing WebRTC P2P Mode (room: ${roomCode}, isHost: ${this.#isHost})...`);
+        const cleanRoomCode = (roomCode || 'TRAC-CS').trim().toUpperCase().replace(/[^A-Za-z0-9_-]/g, '') || 'TRAC-CS';
+        console.log(`[CS-Simulator] Initializing WebRTC P2P Mode (room: ${cleanRoomCode}, isHost: ${this.#isHost})...`);
         this.#playerId = this.#isHost ? 1 : 2;
 
         if (this.#isHost) {
@@ -119,7 +122,7 @@ export class LocalSimulatorConnector {
         // Setup PeerJS if available
         if (typeof window.Peer !== 'undefined') {
             const peerIdPrefix = "traccs-p2p-";
-            const myPeerId = this.#isHost ? `${peerIdPrefix}${roomCode}` : undefined;
+            const myPeerId = this.#isHost ? `${peerIdPrefix}${cleanRoomCode}` : undefined;
 
             try {
                 this.#peer = new window.Peer(myPeerId, {
@@ -143,7 +146,7 @@ export class LocalSimulatorConnector {
                     });
                 } else {
                     this.#peer.on('open', () => {
-                        const targetId = `${peerIdPrefix}${roomCode}`;
+                        const targetId = `${peerIdPrefix}${cleanRoomCode}`;
                         console.log(`[CS-P2P] Connecting to host: ${targetId}`);
                         this.#conn = this.#peer.connect(targetId, { reliable: true });
                         this.#setupDataConnection();
@@ -152,6 +155,33 @@ export class LocalSimulatorConnector {
 
                 this.#peer.on('error', (err) => {
                     console.warn("[CS-P2P] PeerJS error:", err);
+                    if ((err.type === 'unavailable-id' || err.message?.includes('is taken')) && this.#isHost) {
+                        console.log("[CS-P2P] Host ID taken, falling back to Guest connection...");
+                        try { this.#peer.destroy(); } catch (e) {}
+                        this.#isHost = false;
+                        this.#playerId = 2;
+                        this.#playerMe.id = 2;
+                        this.#playerMe.isAttacker = false;
+                        this.#playerMe.color = 2;
+                        this.#playerPos = { x: 4520, y: 1198, z: 2350 };
+                        const guestPeer = new window.Peer(undefined, {
+                            debug: 1,
+                            config: {
+                                iceServers: [
+                                    { urls: 'stun:stun.l.google.com:19302' },
+                                    { urls: 'stun:stun1.l.google.com:19302' },
+                                    { urls: 'stun:stun2.l.google.com:19302' }
+                                ]
+                            }
+                        });
+                        guestPeer.on('open', () => {
+                            this.#peer = guestPeer;
+                            const targetId = `${peerIdPrefix}${cleanRoomCode}`;
+                            console.log(`[CS-P2P] Guest connecting to host: ${targetId}`);
+                            this.#conn = guestPeer.connect(targetId, { reliable: true });
+                            this.#setupDataConnection();
+                        });
+                    }
                 });
             } catch (e) {
                 console.warn("[CS-P2P] Failed to initialize PeerJS, continuing local:", e);
@@ -166,15 +196,36 @@ export class LocalSimulatorConnector {
 
         this.#conn.on('open', () => {
             console.log("[CS-P2P] Data connection ready!");
+            this.#startRoundNow();
+            try {
+                this.#conn.send({
+                    type: 'tick',
+                    player: this.#playerMe
+                });
+            } catch (e) {}
         });
 
         this.#conn.on('data', (data) => {
             if (data.type === 'tick') {
                 this.#peerPlayer = data.player;
+                this.#startRoundNow();
             } else if (data.type === 'hit') {
                 this.#takeDamage(data.damage, data.attackerId, data.headshot, data.itemId);
             }
         });
+    }
+
+    #startRoundNow() {
+        if (!this.#roundStarted) {
+            this.#roundStarted = true;
+            this.#queuedEvents.push({
+                code: EventList.RoundStartEvent,
+                data: {
+                    attackers: 1,
+                    defenders: 1
+                }
+            });
+        }
     }
 
     #startSimulation() {
@@ -261,6 +312,16 @@ export class LocalSimulatorConnector {
     #tickLoop() {
         this.#tick++;
         const tickEvents = [];
+
+        // 0. Drain queued events (Round start, hits, kills)
+        while (this.#queuedEvents.length > 0) {
+            tickEvents.push(this.#queuedEvents.shift());
+        }
+
+        // Auto start round after ~0.9s warmup if not yet started
+        if (!this.#roundStarted && this.#tick > 45) {
+            this.#startRoundNow();
+        }
 
         // 1. Read input actions from Control.js
         const actionString = this.#control ? this.#control.getTickAction() : '';
@@ -480,15 +541,19 @@ export class LocalSimulatorConnector {
         }
 
         // Peer player in P2P mode
-        if (this.#peerPlayer) {
-            activePlayers.push(this.#peerPlayer);
+        if (this.#mode === 'p2p') {
+            if (this.#peerPlayer) {
+                activePlayers.push(this.#peerPlayer);
+            }
 
-            // Send local player to peer
+            // Always broadcast local player to peer when connection is open
             if (this.#conn && this.#conn.open && this.#tick % 2 === 0) {
-                this.#conn.send({
-                    type: 'tick',
-                    player: this.#playerMe
-                });
+                try {
+                    this.#conn.send({
+                        type: 'tick',
+                        player: this.#playerMe
+                    });
+                } catch (e) {}
             }
         }
 
@@ -591,8 +656,35 @@ export class LocalSimulatorConnector {
 
     #takeDamage(damage, attackerId, headshot, itemId) {
         this.#playerMe.health -= damage;
+        this.#queuedEvents.push({
+            code: EventList.SoundEvent,
+            data: {
+                type: headshot ? SoundType.BULLET_HIT_HEADSHOT : SoundType.BULLET_HIT,
+                player: this.#playerId,
+                position: { ...this.#playerPos },
+                extra: { origin: { ...this.#playerPos }, shooter: attackerId }
+            }
+        });
+
         if (this.#playerMe.health <= 0) {
             this.#playerMe.health = 0;
+            this.#queuedEvents.push({
+                code: EventList.KillEvent,
+                data: {
+                    playerDead: this.#playerId,
+                    playerCulprit: attackerId,
+                    headshot: headshot,
+                    itemId: itemId
+                }
+            });
+            this.#queuedEvents.push({
+                code: EventList.SoundEvent,
+                data: {
+                    type: SoundType.PLAYER_DEAD,
+                    player: this.#playerId,
+                    position: { ...this.#playerPos }
+                }
+            });
             // Respawn in 3 seconds
             setTimeout(() => {
                 this.#playerMe.health = 100;
