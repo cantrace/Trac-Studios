@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Counter-Strike 1.6 Web — Trac Studios</title>
   <link rel="icon" type="image/png" href="cs16-web-main/docs/img/map-picker.png">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
@@ -517,7 +520,9 @@
       switchServerMode('lan');
     } else if (modeParam === 'webxash') {
       switchServerMode('webxash');
-    } else if (modeParam === 'playcs') {
+    } else if (modeParam === 'lan') {
+      switchServerMode('lan');
+    } else {
       switchServerMode('playcs');
     }
 
