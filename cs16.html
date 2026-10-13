@@ -187,7 +187,7 @@
       padding: 10px 18px;
       font-size: 13px;
       color: #e2e8f0;
-      display: flex;
+      display: none;
       align-items: center;
       gap: 10px;
       z-index: 50;
@@ -362,14 +362,14 @@
 
     <!-- Server Mode Tabs -->
     <div class="server-tabs">
-      <button class="server-tab active" id="tab-lan" onclick="switchServerMode('lan')">
-        <span>🖥️</span> cs16-web-main (LAN / Yerel)
+      <button class="server-tab active" id="tab-playcs" onclick="switchServerMode('playcs')">
+        <span>⚡</span> Canlı CS 1.6 (Online)
       </button>
       <button class="server-tab" id="tab-webxash" onclick="switchServerMode('webxash')">
-        <span>🌐</span> WebXash CS 1.6 (WebAssembly)
+        <span>🌐</span> WebXash (WebAssembly)
       </button>
-      <button class="server-tab" id="tab-playcs" onclick="switchServerMode('playcs')">
-        <span>⚡</span> Play-CS Canlı Sunucular
+      <button class="server-tab" id="tab-lan" onclick="switchServerMode('lan')">
+        <span>🖥️</span> Kendi Sunucun / LAN
       </button>
     </div>
 
@@ -389,7 +389,7 @@
 
   <!-- Game Container -->
   <div id="game-container">
-    <iframe id="game-frame" src="http://localhost:27016" allow="autoplay; fullscreen; pointer-lock"></iframe>
+    <iframe id="game-frame" src="https://play-cs.com/en/servers" allow="autoplay; fullscreen; pointer-lock"></iframe>
 
     <!-- LAN Server Custom IP Prompt -->
     <div id="lan-banner">
