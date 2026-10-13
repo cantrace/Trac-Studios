@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tek Kişilik Araba Yarışı Oyunu - Mehmet Aras Ayna</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #08080c;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-wrapper {
+            position: relative;
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.3);
+            border: 3px solid #00f3ff;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #111;
+        }
+
+        canvas {
+            display: block;
+            background: #12121c;
+        }
+
+        /* Gösterge Paneli (HUD) */
+        #hud {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            font-weight: 800;
+            font-size: 13px;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
+            z-index: 5;
+        }
+
+        .hud-panel {
+            background: rgba(10, 10, 22, 0.85);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            box-shadow: inset 0 0 8px rgba(0,243,255,0.1);
+        }
+
+        .hud-panel span {
+            color: #00f3ff;
+            font-size: 18px;
+            letter-spacing: 1px;
+        }
+
+        .turbo-container {
+            width: 85px;
+            height: 10px;
+            background: #222;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid #ff0077;
+            margin-top: 2px;
+            box-shadow: 0 0 6px rgba(255, 0, 119, 0.4);
+        }
+
+        #turboBar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0077, #00f3ff);
+            transition: width 0.05s linear;
+        }
+
+        /* Menü Katmanları */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(8, 8, 14, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #00f3ff;
+            text-shadow: 0 0 20px rgba(0, 243, 255, 0.7);
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .creator-badge {
+            font-size: 12px;
+            font-weight: 900;
+            color: #ff0077;
+            background: rgba(255, 0, 119, 0.15);
+            padding: 4px 14px;
+            border-radius: 20px;
+            border: 1px solid #ff0077;
+            margin-bottom: 18px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            box-shadow: 0 0 12px rgba(255, 0, 119, 0.4);
+        }
+
+        p {
+            font-size: 13px;
+            color: #a0a0c0;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        /* Araba Seçim Kartları */
+        .car-selection {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .car-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 10px;
+            width: 125px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .car-card:hover {
+            transform: translateY(-3px);
+            border-color: #00f3ff;
+        }
+
+        .car-card.selected {
+            border-color: #ff0077;
+            background: rgba(255, 0, 119, 0.12);
+            box-shadow: 0 0 18px rgba(255, 0, 119, 0.35);
+        }
+
+        .car-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .car-stats {
+            font-size: 9px;
+            color: #aaa;
+            text-align: left;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00f3ff, #0066ff);
+            color: #000;
+            border: none;
+            padding: 10px 30px;
+            font-size: 15px;
+            font-weight: 900;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 18px rgba(0, 243, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.9);
+            background: linear-gradient(135deg, #ffffff, #00f3ff);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" style="position:fixed;top:15px;left:20px;z-index:9999;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);border:1px solid #00f3ff;color:#00f3ff;text-decoration:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:bold;transition:all 0.2s;" onmouseover="this.style.background='#00f3ff';this.style.color='#000';" onmouseout="this.style.background='rgba(15,23,42,0.85)';this.style.color='#00f3ff';">← Trac Studios Portala Dön</a>
+
+    <div id="game-wrapper">
+        <canvas id="gameCanvas" width="450" height="650"></canvas>
+
+        <!-- Canlı Gösterge Paneli (HUD) -->
+        <div id="hud">
+            <div class="hud-panel">
+                HIZ (KM/S)
+                <span id="speedDisplay">0</span>
+            </div>
+            <div class="hud-panel" style="align-items: center;">
+                FPS / YAPIMCI
+                <span id="fpsDisplay" style="font-size:15px; color:#00ff88;">60</span>
+            </div>
+            <div class="hud-panel">
+                SKOR
+                <span id="scoreDisplay">0</span>
+            </div>
+            <div class="hud-panel">
+                TURBO (SPACE)
+                <div class="turbo-container">
+                    <div id="turboBar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Garaj ve Başlangıç Menüsü -->
+        <div id="startScreen" class="overlay">
+            <h1>PEUGEOT RACING</h1>
+            <div class="creator-badge">YAPIMCI: MEHMET ARAS AYNA</div>
+            <p>Peugeot modelini seç, W/S ile gaz/fren yap, A/D ile direksiyon kır!</p>
+
+            <!-- Araba Seçim Alanı -->
+            <div class="car-selection">
+                <div class="car-card selected" onclick="selectCar(0)" id="car0">
+                    <div class="car-name">Peugeot 206 GTI</div>
+                    <div class="car-stats">
+                        <span>Tür: Kompakt</span>
+                        <span>Çeviklik: Çok Yüksek</span>
+                    </div>
+                </div>
+                <div class="car-card" onclick="selectCar(1)" id="car1">
+                    <div class="car-name">Peugeot 308 Sport</div>
+                    <div class="car-stats">
+                        <span>Tür: Hatchback</span>
+                        <span>Performans: Dengeli</span>
+                    </div>
+                </div>
+                <div class="car-card" onclick="selectCar(2)" id="car2">
+                    <div class="car-name">Peugeot 508 PSE</div>
+                    <div class="car-stats">
+                        <span>Tür: Sedan GT</span>
+                        <span>Maks Hız: Çok Yüksek</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="startGame()">GAZA BAS</button>
+        </div>
+
+        <!-- Oyun Bitti Ekranı -->
+        <div id="gameOverScreen" class="overlay hidden">
+            <h1 style="color: #ff0077; text-shadow: 0 0 20px rgba(255,0,119,0.8);">KAZA YAPTIIN!</h1>
+            <div class="creator-badge">YAPIMCI: MEHMET ARAS AYNA</div>
+            <p>Toplam Skorun: <span id="finalScore" style="color:#00f3ff; font-size:22px; font-weight:bold;">0</span></p>
+            <button class="btn" onclick="returnToMenu()">GARAJA DÖN</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const speedDisplay = document.getElementById('speedDisplay');
+        const fpsDisplay = document.getElementById('fpsDisplay');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const finalScore = document.getElementById('finalScore');
+        const turboBar = document.getElementById('turboBar');
+
+        let gameRunning = false;
+        let score = 0;
+        let roadSpeed = 0;
+        let targetRoadSpeed = 6;
+        let roadLineOffset = 0;
+
+        // FPS Hesaplama Değişkenleri
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+        let fpsTimer = 0;
+        let currentFps = 60;
+
+        // Peugeot Araba Profilleri
+        const peugeotProfiles = [
+            { name: "Peugeot 206 GTI", color: "#00f3ff", accel: 0.18, maxSpeed: 10, handling: 7.5 },
+            { name: "Peugeot 308 Sport", color: "#ff3366", accel: 0.15, maxSpeed: 11, handling: 6.8 },
+            { name: "Peugeot 508 PSE", color: "#ffaa00", accel: 0.12, maxSpeed: 12.5, handling: 6.0 }
+        ];
+
+        let selectedCarIndex = 0;
+
+        function selectCar(index) {
+            selectedCarIndex = index;
+            document.querySelectorAll('.car-card').forEach((card, i) => {
+                if(i === index) card.classList.add('selected');
+                else card.classList.remove('selected');
+            });
+        }
+
+        // Oyuncu Aracı (Peugeot)
+        let player = {
+            x: canvas.width / 2 - 20,
+            y: canvas.height - 130,
+            width: 40,
+            height: 76,
+            currentSpeed: 0,
+            turbo: 100,
+            isTurboActive: false
+        };
+
+        let obstacles = [];
+        let particles = [];
+        let obstacleTimer = 0;
+        let keys = { left: false, right: false, up: false, down: false, space: false };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
+            if (e.key === ' ') { keys.space = true; e.preventDefault(); }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = false;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
+            if (e.key === ' ') keys.space = false;
+        });
+
+        function startGame() {
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+
+            player.x = canvas.width / 2 - 20;
+            player.y = canvas.height - 130;
+            player.currentSpeed = 3;
+            player.turbo = 100;
+
+            obstacles = [];
+            particles = [];
+            score = 0;
+            targetRoadSpeed = 6;
+            obstacleTimer = 0;
+            gameRunning = true;
+
+            lastFrameTime = performance.now();
+            loop();
+        }
+
+        function returnToMenu() {
+            gameOverScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+
+        function createExplosion(x, y) {
+            for (let i = 0; i < 45; i++) {
+                particles.push({
+                    x: x + 20,
+                    y: y + 38,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    radius: Math.random() * 5 + 2,
+                    color: Math.random() > 0.4 ? '#ff0077' : '#ffaa00',
+                    alpha: 1
+                });
+            }
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            createExplosion(player.x, player.y);
+            setTimeout(() => {
+                finalScore.innerText = Math.floor(score);
+                gameOverScreen.classList.remove('hidden');
+            }, 300);
+        }
+
+        function checkCollision(r1, r2) {
+            return r1.x < r2.x + r2.width - 6 &&
+                   r1.x + r1.width - 6 > r2.x &&
+                   r1.y < r2.y + r2.height - 6 &&
+                   r1.y + r1.height - 6 > r2.y;
+        }
+
+        // Gerçekçi Detaylı Araba Çizimi (Peugeot veya Trafik)
+        function drawRealisticCar(x, y, w, h, color, type, isPlayer = false) {
+            ctx.shadowBlur = isPlayer && player.isTurboActive ? 22 : 10;
+            ctx.shadowColor = isPlayer && player.isTurboActive ? '#ff0077' : color;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, 9);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Camlar (Ön ve Arka)
+            ctx.fillStyle = '#0b0b12';
+            if (isPlayer || type === 'sedan' || type === 'suv') {
+                ctx.fillRect(x + 5, y + 15, w - 10, 16); // Ön Cam
+                ctx.fillRect(x + 7, y + 45, w - 14, 12); // Arka Cam
+            } else {
+                ctx.fillRect(x + 5, y + 38, w - 10, 16); // Taksi/Özel cam
+            }
+
+            // Tekerlekler
+            ctx.fillStyle = '#050508';
+            ctx.fillRect(x - 4, y + 10, 4, 15);
+            ctx.fillRect(x + w, y + 10, 4, 15);
+            ctx.fillRect(x - 4, y + h - 24, 4, 15);
+            ctx.fillRect(x + w, y + h - 24, 4, 15);
+
+            // Farlar & Egzoz Alev Patlaması
+            if (isPlayer) {
+                // Ön Far Işıkları
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(x + 4, y, 5, 3);
+                ctx.fillRect(x + w - 9, y, 5, 3);
+
+                // Peugeot Ön Aslan Logosu Temsili Detay
+                ctx.fillStyle = '#00f3ff';
+                ctx.fillRect(x + w / 2 - 3, y + 4, 6, 2);
+
+                // Egzoz Ateşi / Patlaması
+                let backfireActive = keys.down || player.currentSpeed < 3 || Math.random() > 0.6;
+                if (player.isTurboActive || backfireActive) {
+                    ctx.fillStyle = player.isTurboActive ? '#ff0077' : '#ff6600';
+                    ctx.shadowBlur = player.isTurboActive ? 16 : 8;
+                    ctx.shadowColor = ctx.fillStyle;
+                    let flameLen = player.isTurboActive ? 16 + Math.random() * 8 : 6 + Math.random() * 6;
+                    ctx.fillRect(x + 6, y + h, 5, flameLen);
+                    ctx.fillRect(x + w - 11, y + h, 5, flameLen);
+                    ctx.shadowBlur = 0;
+                }
+            } else {
+                // Trafik Aracı Arka Stop Lambaları
+                ctx.fillStyle = type === 'taxi' ? '#ffaa00' : '#ff0033';
+                ctx.fillRect(x + 4, y + h - 3, 5, 3);
+                ctx.fillRect(x + w - 9, y + h - 3, 5, 3);
+            }
+        }
+
+        function update() {
+            let profile = peugeotProfiles[selectedCarIndex];
+
+            // Turbo / Nitro Sistemi
+            if (keys.space && player.turbo > 0) {
+                player.isTurboActive = true;
+                player.turbo -= 1.2;
+                targetRoadSpeed = profile.maxSpeed * 1.5;
+            } else {
+                player.isTurboActive = false;
+                if (player.turbo < 100 && !keys.space) player.turbo += 0.35;
+                
+                // Gaz (W) ve Fren (S) Mantığı
+                if (keys.up) {
+                    player.currentSpeed += profile.accel;
+                    if (player.currentSpeed > profile.maxSpeed) player.currentSpeed = profile.maxSpeed;
+                } else if (keys.down) {
+                    player.currentSpeed -= profile.accel * 1.5;
+                    if (player.currentSpeed < 2) player.currentSpeed = 2;
+                } else {
+                    // Doğal yavaşlama
+                    if (player.currentSpeed > 5) player.currentSpeed -= 0.05;
+                    else if (player.currentSpeed < 5) player.currentSpeed += 0.05;
+                }
+                targetRoadSpeed = player.currentSpeed;
+            }
+            turboBar.style.width = player.turbo + '%';
+
+            // Yumuşak Yol Hızı Geçişi
+            roadSpeed += (targetRoadSpeed - roadSpeed) * 0.1;
+
+            // Direksiyon Hareketi (A / D / Sol / Sağ)
+            let steer = profile.handling;
+            if (keys.left && player.x > 35) player.x -= steer;
+            if (keys.right && player.x < canvas.width - 75) player.x += steer;
+
+            // Yol Çizgisi Animasyonu
+            roadLineOffset += roadSpeed;
+            if (roadLineOffset >= 45) roadLineOffset = 0;
+
+            score += player.isTurboActive ? 0.3 : 0.1;
+
+            // Trafik Üretimi (Taksiler, SUV'ler, Siyah/Mavi Sedanlar)
+            obstacleTimer++;
+            if (obstacleTimer > Math.max(25, 55 - Math.floor(roadSpeed * 2))) {
+                obstacleTimer = 0;
+                let lanes = [55, 152, 248, 345];
+                let rx = lanes[Math.floor(Math.random() * lanes.length)];
+                
+                let types = ['taxi', 'suv', 'sedan_black', 'sedan_blue'];
+                let tType = types[Math.floor(Math.random() * types.length)];
+                
+                let colorMap = {
+                    'taxi': '#e5c100',
+                    'suv': '#6b7280',
+                    'sedan_black': '#1f2937',
+                    'sedan_blue': '#1e40af'
+                };
+
+                obstacles.push({
+                    x: rx,
+                    y: -110,
+                    width: 40,
+                    height: 76,
+                    speed: roadSpeed - (Math.random() * 1.8 + 0.8),
+                    color: colorMap[tType],
+                    type: tType
+                });
+            }
+
+            // Engelleri Güncelle
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].y += roadSpeed - obstacles[i].speed;
+
+                if (checkCollision(player, obstacles[i])) {
+                    gameOver();
+                }
+
+                if (obstacles[i].y > canvas.height + 120) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Patlama Parçacıklarını Güncelle
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.025;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            // HUD Değerleri
+            speedDisplay.innerText = Math.floor(roadSpeed * 24);
+            scoreDisplay.innerText = Math.floor(score);
+        }
+
+        function draw() {
+            // Arka Plan
+            ctx.fillStyle = '#0a0a12';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Asfalt Yol
+            ctx.fillStyle = '#161622';
+            ctx.fillRect(25, 0, canvas.width - 50, canvas.height);
+
+            // Yol Kenarı Işıklı Neon Şeritler
+            let stripeLen = 35;
+            for (let y = -stripeLen + (roadLineOffset % stripeLen); y < canvas.height; y += stripeLen) {
+                let isCyan = Math.floor((y - roadLineOffset) / stripeLen) % 2 === 0;
+                ctx.fillStyle = isCyan ? '#00f3ff' : '#ff0077';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.fillRect(20, y, 4, stripeLen - 10);
+                ctx.fillRect(canvas.width - 24, y, 4, stripeLen - 10);
+                ctx.shadowBlur = 0;
+            }
+
+            // Şerit Çizgileri
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([20, 20]);
+            ctx.lineDashOffset = -roadLineOffset;
+
+            [120, 215, 310].forEach(lx => {
+                ctx.beginPath();
+                ctx.moveTo(lx, 0);
+                ctx.lineTo(lx, canvas.height);
+                ctx.stroke();
+            });
+            ctx.setLineDash([]);
+
+            // Trafik Araçları
+            for (let obs of obstacles) {
+                drawRealisticCar(obs.x, obs.y, obs.width, obs.height, obs.color, obs.type, false);
+            }
+
+            // Oyuncu Aracı (Seçilen Peugeot)
+            let activePeugeotColor = peugeotProfiles[selectedCarIndex].color;
+            drawRealisticCar(player.x, player.y, player.width, player.height, activePeugeotColor, 'peugeot', true);
+
+            // Patlama Parçacıkları
+            for (let p of particles) {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function loop(timestamp) {
+            if (!gameRunning) return;
+
+            // Gerçek Zamanlı FPS Hesaplama
+            frameCount++;
+            if (timestamp - fpsTimer >= 500) {
+                currentFps = Math.round((frameCount * 1000) / (timestamp - fpsTimer));
+                fpsDisplay.innerText = currentFps;
+                fpsDisplay.style.color = currentFps < 45 ? '#ff3333' : '#00ff88';
+                frameCount = 0;
+                fpsTimer = timestamp;
+            }
+
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+    </script>
+</body>
+</html>

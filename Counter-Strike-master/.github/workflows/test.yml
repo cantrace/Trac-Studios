@@ -1,0 +1,43 @@
+name: "Tests"
+on:
+  push:
+    branches: ['*']
+    paths-ignore:
+      - '**.md'
+      - 'cli/'
+      - 'electron/'
+      - 'www/'
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - '**.md'
+      - 'cli/'
+      - 'electron/'
+      - 'www/'
+
+jobs:
+  server-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: "Install Linux dependencies"
+        timeout-minutes: 4
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            composer
+          sudo bash -c "echo 'zend.assertions = 1' >> /etc/php/*/cli/php.ini"
+
+      - name: "Install Composer dependencies"
+        timeout-minutes: 6
+        run: |
+          composer install
+
+      - name: "Run Composer check-full"
+        timeout-minutes: 20
+        run: |
+          grep '"timeout": 20,' infection.json5
+          sed -i 's/"timeout": 20,/"timeout": 40,/' infection.json5
+          composer check-full

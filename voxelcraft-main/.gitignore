@@ -1,0 +1,7 @@
+# Resource packs are third-party content with their own licenses; never commit them.
+resourcepack.zip
+*.zip
+# OS / tooling noise
+.DS_Store
+node_modules/
+*.log

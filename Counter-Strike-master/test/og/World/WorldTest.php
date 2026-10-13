@@ -1,0 +1,174 @@
+<?php
+
+namespace Test\World;
+
+use cs\Core\Box;
+use cs\Core\Floor;
+use cs\Core\GameState;
+use cs\Core\Player;
+use cs\Core\Point;
+use cs\Core\Ramp;
+use cs\Core\Setting;
+use cs\Core\Wall;
+use cs\Core\World;
+use cs\Enum\Color;
+use cs\Enum\RampDirection;
+use cs\Map\TestMap;
+use Test\BaseTestCase;
+
+class WorldTest extends BaseTestCase
+{
+
+    public function testCanBeSeen(): void
+    {
+        $game = $this->createGame();
+        $player = $game->getPlayer(1);
+        $player->getSight()->look(0, 0);
+        $this->assertFalse($game->getWorld()->canBeSeen($player, new Point(999, 999, 999), 10, 200));
+        $this->assertFalse($game->getWorld()->canBeSeen(
+            $player, $player->getPositionClone()->addY($player->getSightHeight())->addZ(-20), 10, 999)
+        );
+        $this->assertTrue($game->getWorld()->canBeSeen(
+            $player, $player->getPositionClone()->addY($player->getSightHeight())->addZ(20), 10, 999)
+        );
+        $this->assertTrue($game->getWorld()->canBeSeen(
+            $player, $player->getPositionClone()->addY($player->getSightHeight())->addZ(100), 10, 100)
+        );
+        $this->assertFalse($game->getWorld()->canBeSeen(
+            $player, $player->getSightPositionClone()->addZ(101), 10, 100)
+        );
+
+        $game->getWorld()->addWall(new Wall((new Point())->addPart(-20, -20, 20), true, 200));
+        $this->assertFalse($game->getWorld()->canBeSeen(
+            $player, $player->getPositionClone()->addY($player->getSightHeight())->addZ(100), 10, 100)
+        );
+
+        $game->loadMap(new TestMap());
+        $this->assertTrue($game->getWorld()->canBeSeen(
+            $player, $player->getPositionClone()->addY($player->getSightHeight())->addZ(100), 10, 100)
+        );
+        $game->addPlayer(new Player(2, Color::YELLOW, false));
+        $game->getPlayer(2)->setPosition($player->getPositionClone()->addZ(10));
+        $this->assertTrue($game->getWorld()->canBeSeen(
+            $player, $player->getPositionClone()->addY($player->getSightHeight())->addZ(100), 10, 100, false)
+        );
+        $this->assertFalse($game->getWorld()->canBeSeen(
+            $player, $player->getPositionClone()->addY($player->getSightHeight())->addZ(100), 10, 100, true)
+        );
+        $game->getPlayer(2)->setPosition(new Point(100, 999, 100));
+        $this->assertTrue($game->getWorld()->canBeSeen(
+            $player, $player->getPositionClone()->addY($player->getSightHeight())->addZ(100), 10, 100, true)
+        );
+
+        $player->getSight()->look(0, -80);
+        $this->assertFalse($game->getWorld()->canBeSeen($player, $player->getPositionClone()->setY(-1), 10, 999));
+    }
+
+    public function testRandomSpawnPosition(): void
+    {
+        $game = $this->createGame();
+        $map = new TestMap();
+        $game->loadMap($map);
+        $firstSpawnPosition = $map->getSpawnPositionDefender()[0];
+        $this->assertPositionSame($firstSpawnPosition, $game->getWorld()->getPlayerSpawnPosition(false, false));
+        $game->getWorld()->roundReset();
+        $this->assertPositionSame($firstSpawnPosition, $game->getWorld()->getPlayerSpawnPosition(false, false));
+        $game->getWorld()->roundReset();
+        $this->assertPositionSame($firstSpawnPosition, $game->getWorld()->getPlayerSpawnPosition(false, false));
+
+        $game->getWorld()->roundReset();
+        if ($game->getWorld()->getPlayerSpawnPosition(false, true)->equals($firstSpawnPosition)) {
+            $game->getWorld()->roundReset();
+            if ($game->getWorld()->getPlayerSpawnPosition(false, true)->equals($firstSpawnPosition)) {
+                $game->getWorld()->roundReset();
+                if ($game->getWorld()->getPlayerSpawnPosition(false, true)->equals($firstSpawnPosition)) {
+                    $game->getWorld()->roundReset();
+                    $this->assertPositionNotSame($firstSpawnPosition, $game->getWorld()->getPlayerSpawnPosition(false, true));
+                }
+            }
+        }
+    }
+
+    public function testStairCaseUp(): void
+    {
+        $steps = 20;
+        $ramp = new Ramp(new Point(Setting::playerBoundingRadius() + 10, 0, 0), RampDirection::GROW_TO_POSITIVE_X, $steps + 1, 250, true, Setting::moveDistancePerTick());
+
+        $game = $this->createTestGameNoPause($steps);
+        $game->getWorld()->addRamp($ramp);
+        $game->onTick(fn(GameState $state) => $state->getPlayer(1)->moveRight());
+
+        $game->start();
+        $this->assertSame($steps * $ramp->stepHeight, $game->getPlayer(1)->getPositionClone()->y);
+    }
+
+    public function testWallPenetration(): void
+    {
+        $game = $this->createTestGame(Setting::tickCountJump());
+        $p = $game->getPlayer(1);
+        $box = new Box($p->getPositionClone()->clone()->addZ(Setting::moveDistancePerTick()), $p->getBoundingRadius(), 50, $p->getBoundingRadius());
+        $game->getWorld()->addBox($box);
+        $wall = new Wall(new Point(-200, -10, $box->getBase()->z + $box->depthZ), true, 400, 3 * Setting::playerJumpHeight());
+        $game->getWorld()->addWall($wall);
+        $game->onTick(function (GameState $state) {
+            $state->getPlayer(1)->jump();
+            $state->getPlayer(1)->moveForward();
+        });
+
+        $game->start();
+        $this->assertGreaterThanOrEqual($box->heightY, $game->getPlayer(1)->getPositionClone()->y);
+        $this->assertSame($wall->getBase() - $p->getBoundingRadius() - 1, $game->getPlayer(1)->getPositionClone()->z);
+    }
+
+    public function testBoxPenetration(): void
+    {
+        $game = $this->createTestGame(50);
+        $p = $game->getPlayer(1);
+        $box = new Box($p->getPositionClone()->clone()->addZ(2 * Setting::moveDistancePerTick()), 700, 50, 3 * $p->getBoundingRadius());
+        $game->getWorld()->addBox($box);
+        $depth = $box->getBase()->z + $box->depthZ;
+        $wall = new Box(new Point(-100, 0, -$depth), 800, 400, 2 * $depth);
+        $game->getWorld()->addBox($wall);
+        $game->onTick(function (GameState $state) {
+            $state->getPlayer(1)->getSight()->lookHorizontal(15);
+            $state->getPlayer(1)->jump();
+            $state->getPlayer(1)->moveForward();
+            $state->getPlayer(1)->moveRight();
+        });
+
+        $game->start();
+        $this->assertGreaterThanOrEqual($box->heightY, $game->getPlayer(1)->getPositionClone()->y);
+        $this->assertSame($box->getBase()->z + $box->depthZ - $p->getBoundingRadius() - 1, $game->getPlayer(1)->getPositionClone()->z);
+    }
+
+    public function testDoubleBoxPenetration(): void
+    {
+        $y = 0;
+        $boxHeight = Setting::playerHeadHeightCrouch() + 2;
+        $scale = (int)ceil(Setting::playerBoundingRadius() * 1.8);
+        $game = $this->createTestGame(50);
+        $world = $game->getWorld();
+        $p1 = $game->getPlayer(1);
+        $p1->setPosition(new Point(6 * $scale, $y, 4 * $scale));
+        $p2 = new Player(2, Color::BLUE, false);
+        $game->addPlayer($p2);
+        $p2->setPosition($p1->getPositionClone()->addY($p1->getHeadHeight() + 20));
+        $p1->crouch();
+
+        $world->addBox(new Box(new Point(5 * $scale, $y, 5 * $scale), 3 * $scale, $boxHeight, $scale));
+        $world->addBox(new Box(new Point(6 * $scale, $y + $boxHeight, 5 * $scale), 1 * $scale, $boxHeight, $scale));
+
+        $game->onTick(function (GameState $state) {
+            $state->getPlayer(1)->moveForward();
+            if ($state->getTickId() < Setting::tickCountCrouch()) {
+                return;
+            }
+            $state->getPlayer(2)->moveForward();
+        });
+        $game->start();
+        $boxStart = 5 * $scale - 1 - $p1->getBoundingRadius();
+        $this->assertSame($boxStart, $p1->getPositionClone()->z);
+        $this->assertSame($boxStart, $p2->getPositionClone()->z);
+    }
+
+}

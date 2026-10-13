@@ -1,0 +1,118 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "server/src/",
+        ],
+    },
+    "timeout": 20,
+    "testFramework": "phpunit",
+    "staticAnalysisTool": "phpstan",
+    "staticAnalysisToolOptions": "--memory-limit=300M",
+    "mutators": {
+        "global-ignoreSourceCodeByRegex": [
+            "\\$this->log\\(.*\\);",
+            "throw new GameException\\(.+\\);",
+            "GameException::invalid\\(.*\\);",
+            "GameException::notImplementedYet\\(.*\\);",
+            "assert\\(.+?\\);",
+            "if\\s*\\(\\$count > 10 && \\$count % 2 === 0\\)\\s\\{",
+        ],
+        "@default": true,
+        "@conditional_boundary": false,
+        "@conditional_negotiation": false,
+        "Continue_": false,
+        "DecrementInteger": false,
+        "FalseValue": false,
+        "Increment": false,
+        "IncrementInteger": false,
+        "LogicalAndAllSubExprNegation": false,
+        "LogicalOr": false,
+        "Minus": false,
+        "Multiplication": false,
+        "Plus": false,
+        "ReturnRemoval": false,
+        "RoundingFamily": false,
+        "TrueValue": false,
+        "ArrayItem": {
+            "ignore": [
+                "cs\\Event\\*::serialize",
+            ],
+        },
+        "ArrayItemRemoval": {
+            "ignore": [
+                "cs\\Event\\*::serialize",
+                "cs\\Traits\\Player\\AttackTrait::applyMovementRecoil",
+            ],
+        },
+        "Break_": {
+            "ignore": [
+                "cs\\Traits\\Player\\GravityTrait::calculateGravity",
+                "cs\\Traits\\Player\\JumpTrait::jump",
+            ],
+        },
+        "Coalesce": {
+            "ignoreSourceCodeByRegex": [
+                ".+\\(\\$skipPlayerIds\\[\\$playerId\\].+",
+                ".+SpeedMultiplier-\\{\\$itemId\\}.+",
+            ],
+        },
+        "Division": {
+            "ignoreSourceCodeByRegex": [
+                ".+rand\\(.+",
+            ],
+        },
+        "InstanceOf_": {
+            "ignoreSourceCodeByRegex": [
+                "if\\s*\\(\\$this->ball->getResolutionAngleVertical\\(\\) > 0 && \\(.+",
+            ],
+        },
+        "LogicalAndNegation": {
+            "ignoreSourceCodeByRegex": [
+                ".+\\$moveZ !== 0 && \\$planeCollision = \\$this->world->checkZSideWallCollision\\(\\$this->candidate, 2 \\* \\$r, \\$r.+",
+            ]
+        },
+        "LogicalNot": {
+            "ignoreSourceCodeByRegex": [
+                ".+\\$this->lastMoveX === -\\$moveX.+",
+            ]
+        },
+        "MatchArmRemoval": {
+            "ignoreSourceCodeByRegex": [
+                ".+GameException::invalid\\(.+",
+            ],
+        },
+        "MethodCallRemoval": {
+            "ignore": [
+                "cs\\Equipment\\Bomb::unEquip",
+            ],
+            "ignoreSourceCodeByRegex": [
+                "\\$this->setActiveFloor\\(.+\\);",
+                "\\$prevPos->setFrom\\(\\$candidate\\);",
+                "\\$prevPos->setFrom\\(\\$newPos\\);",
+                "\\$this->makeSound\\(.+\\);",
+                "\\$soundEvent->setItem\\(.+\\);",
+                "\\$soundEvent->setPlayer\\(.+\\);",
+                "\\$soundEvent->setSurface\\(.+\\);",
+                "\\$soundEvent->addExtra\\(.+\\);",
+                "\\$this->addSoundEvent\\(.+\\);",
+                "\\$bullet->addPlayerIdSkip\\(\\$playerId\\);",
+                "\\$this->convertToNavMeshNode\\(\\$navmesh\\);",
+                ".+max\\(\\$boxMax->x, \\$xyz\\[0\\]\\).+",
+            ],
+        },
+        "OneZeroFloat": {
+            "ignoreSourceCodeByRegex": [
+                "if \\(\\$jaggedness !== 1.0\\) \\{",
+            ]
+        },
+        "Ternary": {
+            "ignore": [
+                "cs\\Core\\Player::serialize",
+            ],
+            "ignoreSourceCodeByRegex": [
+                ".+rand\\(.+",
+            ],
+        },
+    },
+}

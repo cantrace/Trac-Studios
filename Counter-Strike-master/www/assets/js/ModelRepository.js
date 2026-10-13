@@ -1,0 +1,274 @@
+import * as THREE from 'three'
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {KTX2Loader} from 'three/addons/loaders/KTX2Loader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import {ItemId} from "./Enums.js";
+import {Utils} from "./Utils.js";
+
+export class ModelRepository {
+    #gltfLoader
+    #textureLoader
+    #models = {}
+    #meshes = {}
+    #materials = {
+        caps: {},
+        smoke: null,
+        outfitTeam: null,
+        outfitOpponent: null,
+    }
+    #textures = {
+        cap: {}
+    }
+
+    constructor() {
+        this.#gltfLoader = new GLTFLoader()
+        this.#textureLoader = new THREE.TextureLoader()
+    }
+
+    #loadModel(url) {
+        return this.#gltfLoader.loadAsync(url)
+    }
+
+    #loadTexture(url) {
+        return this.#textureLoader.loadAsync(url)
+    }
+
+    #loadMap(mapName) {
+        return this.#loadModel(`./resources/map/${mapName}.glb`).then((model) => {
+            model.scene.matrixAutoUpdate = false
+            model.scene.matrixWorldAutoUpdate = false
+            model.scene.traverse(function (object) {
+                if (object.isMesh) {
+                    if (object.material) {
+                        object.material.shadowSide = THREE.DoubleSide
+                    }
+                    object.castShadow = true
+                    object.receiveShadow = true
+                    object.matrixAutoUpdate = false
+                    object.matrixWorldAutoUpdate = false
+                    object.layers.enable(Utils.LAYER_WORLD)
+                }
+            })
+
+            const sun = new THREE.DirectionalLight(0xffeac2, 4)
+            sun.position.set(10000, 11000, -9000)
+            sun.castShadow = true
+            sun.shadow.mapSize.width = 4096
+            sun.shadow.mapSize.height = 4096
+            sun.shadow.bias = -0.00018
+            sun.shadow.autoUpdate = false
+            sun.shadow.needsUpdate = true
+            sun.shadow.camera.near = 3000
+            sun.shadow.camera.far = 15500
+            sun.shadow.camera.left = -5000
+            sun.shadow.camera.right = 9000
+            sun.shadow.camera.top = 1000
+            sun.shadow.camera.bottom = -11000
+            model.scene.add(sun, new THREE.AmbientLight(0xcfe4bb, 0.2))
+            return model.scene
+        })
+    }
+
+    getBomb() {
+        const bomb = this.#models[ItemId.Bomb]
+        bomb.children.forEach((root) => root.visible = false)
+        bomb.getObjectByName('item').visible = true
+        bomb.rotation.set(0, 0, 0)
+        bomb.position.setScalar(0)
+        return bomb
+    }
+
+    getPlayer(colorIndex, isOpponent) {
+        const clone = SkeletonUtils.clone(this.#models.player)
+        const player = clone.getObjectByName('player')
+
+        const headWear = player.getObjectByName('Wolf3D_Headwear')
+        if (this.#materials.caps[colorIndex] === undefined) {
+            const newMaterial = headWear.material.clone()
+            newMaterial.map = this.#textures.cap[colorIndex]
+            this.#materials.caps[colorIndex] = newMaterial
+        }
+        headWear.material = this.#materials.caps[colorIndex]
+
+        const outfit = player.getObjectByName('Wolf3D_Outfit_Top')
+        outfit.material = isOpponent ? this.#materials.outfitOpponent : this.#materials.outfitTeam
+        return player
+    }
+
+    getPlayerAnimation() {
+        return this.#models.playerAnimation
+    }
+
+    getPlayerHitMesh() {
+        return this.#meshes.playerHitMesh.clone()
+    }
+
+    getSmokeMaterial() {
+        return this.#materials.smoke
+    }
+
+    getModelForItem(item) {
+        if (item.id === ItemId.Bomb) {
+            return this.getBomb()
+        }
+
+        const model = this.#models[item.id]
+        if (model === undefined) {
+            console.warn("No model for", item)
+            return new THREE.Mesh(new THREE.SphereGeometry(8), new THREE.MeshBasicMaterial({color: 0xFF0000}))
+        }
+
+        return model.clone()
+    }
+
+    init(scene, renderer, mapName = null) {
+        const ktx2Loader = new KTX2Loader()
+        ktx2Loader.setTranscoderPath('assets/threejs/libs/basis/')
+        ktx2Loader.detectSupport(renderer)
+        this.#gltfLoader.setKTX2Loader(ktx2Loader)
+
+        const self = this
+        const promises = []
+        mapName && promises.push(this.#loadMap(mapName).then((model) => scene.add(model)))
+
+        promises.push(this.#loadModel('./resources/model/player.glb').then((model) => {
+            model.scene.traverse(function (object) {
+                object.frustumCulled = false // fixme find out how to recalculate bounding boxes or bake animation
+                if (object.isMesh) {
+                    object.castShadow = true
+                    object.receiveShadow = true
+                    object.layers.enable(Utils.LAYER_PLAYERS)
+                }
+            })
+
+            // fixme inside model
+            const kitSlot = model.scene.getObjectByName('slot-11')
+            kitSlot.position.y -= 11
+            const knifeSlot = model.scene.getObjectByName('slot-0')
+            knifeSlot.position.y += 5.7
+            knifeSlot.position.x += 3.8
+            knifeSlot.position.z += -3.5
+            knifeSlot.rotateY(Utils.degreeToRadian(-70))
+            knifeSlot.rotateX(Utils.degreeToRadian(-4))
+            const belt = model.scene.getObjectByName('belt')
+            const slot4 = new THREE.Object3D()
+            slot4.name = 'slot-4'
+            slot4.rotation.x = Utils.degreeToRadian(90)
+            slot4.position.set(16, 131, -5)
+            const slot5 = new THREE.Object3D()
+            slot5.name = 'slot-5'
+            slot5.rotation.x = Utils.degreeToRadian(90)
+            slot5.position.set(-14, 114, -9)
+            const slot6 = new THREE.Object3D()
+            slot6.name = 'slot-6'
+            slot6.rotation.x = Utils.degreeToRadian(90)
+            slot6.position.set(-19, 114, 3)
+            const slot7 = new THREE.Object3D()
+            slot7.name = 'slot-7'
+            slot7.rotation.x = Utils.degreeToRadian(90)
+            slot7.position.set(16.5, 130, 1)
+            const slot8 = new THREE.Object3D()
+            slot8.name = 'slot-8'
+            slot8.position.set(-18, 112, -4)
+            const slot9 = new THREE.Object3D()
+            slot9.name = 'slot-9'
+            slot9.rotation.x = Utils.degreeToRadian(90)
+            slot9.position.set(13, 110, -8)
+            belt.add(slot4, slot5, slot6, slot7, slot8, slot9)
+
+            this.#models.player = model.scene.getObjectByName('player')
+            this.#models.playerAnimation = model.animations
+        }))
+
+        const models = {}
+        models[ItemId.Bomb] = 'bomb.glb'
+        models[ItemId.Knife] = 'knife.glb'
+        models[ItemId.RifleAk] = 'ak.glb'
+        models[ItemId.RifleM4A4] = 'm4.glb'
+        models[ItemId.RifleAWP] = 'awp.glb'
+        models[ItemId.PistolUsp] = 'usp.glb'
+        models[ItemId.PistolP250] = 'p250.glb'
+        models[ItemId.PistolGlock] = 'pistol.glb'
+        models[ItemId.HighExplosive] = 'highexplosive.glb'
+        models[ItemId.Flashbang] = 'flashbang.glb'
+        models[ItemId.Smoke] = 'smoke.glb'
+        models[ItemId.Decoy] = 'decoy.glb'
+        models[ItemId.Incendiary] = 'incendiary.glb'
+        models[ItemId.Molotov] = 'molotov.glb'
+
+        Object.keys(models).forEach(function (itemId) {
+            const fileName = models[itemId]
+            promises.push(self.#loadModel(`./resources/model/${fileName}`).then((model) => {
+                model.scene.children.forEach((root) => root.visible = false)
+                const item = model.scene.getObjectByName('item')
+                item.traverse(function (object) {
+                    if (object.isMesh) {
+                        object.castShadow = true
+                        object.layers.enable(Utils.LAYER_ITEMS)
+                    }
+                })
+                item.visible = true
+
+                self.#models[itemId] = model.scene
+            }))
+        })
+        promises.push(this.#loadModel('./resources/model/kit.glb').then((model) => {
+            model.scene.traverse(function (object) {
+                if (object.isMesh) {
+                    object.castShadow = true
+                    object.layers.enable(Utils.LAYER_ITEMS)
+                }
+            })
+
+            this.#models[ItemId.DefuseKit] = model.scene
+        }))
+
+        promises.push(this.#loadTexture('./resources/img/player/outfit_0.png').then((texture) => {
+            texture.flipY = false
+            texture.encoding = THREE.sRGBEncoding
+            this.#textures.team = texture
+        }))
+        promises.push(this.#loadTexture('./resources/img/player/outfit_1.png').then((texture) => {
+            texture.flipY = false
+            texture.encoding = THREE.sRGBEncoding
+            this.#textures.opponent = texture
+        }))
+        for (let number = 1; number <= 5; number++) {
+            promises.push(self.#loadTexture(`./resources/img/player/cap_${number}.png`).then((texture) => {
+                texture.flipY = false
+                self.#textures.cap[number] = texture
+            }))
+        }
+
+        promises.push(this.#loadTexture('./resources/img/sphere_glow.png').then((texture) => {
+            const material = new THREE.SpriteMaterial({
+                map: texture,
+                color: 0xFFFFFF,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+            });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(35, 45, 30);
+
+
+            this.#materials.smoke = new THREE.MeshStandardMaterial({ // todo better material with cool displacement map etc.
+                color: 0x798aa0,
+                map: texture,
+                side: THREE.FrontSide,
+            })
+
+            this.#meshes.playerHitMesh = sprite
+        }))
+
+        return Promise.all(promises).then(() => {
+            const outfit = this.#models.player.getObjectByName('Wolf3D_Outfit_Top')
+            const materialTeam = outfit.material.clone()
+            materialTeam.map = this.#textures.team
+            const materialOpponent = outfit.material.clone()
+            materialOpponent.map = this.#textures.opponent
+
+            this.#materials.outfitTeam = materialTeam
+            this.#materials.outfitOpponent = materialOpponent
+        })
+    }
+}

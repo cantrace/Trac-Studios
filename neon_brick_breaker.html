@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Brick Breaker — Trac Studios</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #070913;
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+    }
+    .back-btn {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      color: #00f5d4;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+    .back-btn:hover { background: #00f5d4; color: #070913; }
+    #game-container {
+      position: relative;
+      width: 520px;
+      height: 640px;
+      max-width: 95vw;
+      max-height: 85vh;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(121, 40, 202, 0.25), 0 20px 40px rgba(0,0,0,0.8);
+      border: 2px solid rgba(121, 40, 202, 0.6);
+      background: #090c1a;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    #ui-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(9, 12, 26, 0.85);
+      backdrop-filter: blur(6px);
+      z-index: 10;
+      text-align: center;
+      padding: 24px;
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 32px;
+      background: linear-gradient(135deg, #7928ca, #00f5d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    p { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+    .play-btn {
+      background: linear-gradient(135deg, #7928ca, #00f5d4);
+      color: #fff;
+      border: none;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 16px;
+      padding: 14px 32px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(121, 40, 202, 0.5);
+      transition: transform 0.15s;
+    }
+    .play-btn:hover { transform: scale(1.05); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="back-btn">← Trac Studios Portala Dön</a>
+  </header>
+
+  <div id="game-container">
+    <canvas id="c"></canvas>
+    <div id="ui-overlay">
+      <h1 id="title">CYBER BREAKER</h1>
+      <p id="desc">Fareyi veya Parmağını Hareket Ettir · Tüm Siber Tuğlaları Parçala!</p>
+      <div id="score-info" style="font-family:'Orbitron',sans-serif;font-size:18px;margin-bottom:14px;display:none;"></div>
+      <button class="play-btn" id="start-btn" onclick="startGame()">BAŞLA</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 520;
+    canvas.height = 640;
+
+    let paddle = { x: 210, y: 600, w: 100, h: 14 };
+    let ball = { x: 260, y: 400, vx: 4, vy: -5, r: 8 };
+    let bricks = [];
+    let particles = [];
+    let score = 0;
+    let lives = 3;
+    let running = false;
+
+    const COLORS = ['#f72585', '#7928ca', '#4361ee', '#4cc9f0', '#00f5d4'];
+
+    function initBricks() {
+      bricks = [];
+      const rows = 5, cols = 8;
+      const bw = 54, bh = 20, pad = 8, ox = 15, oy = 60;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          bricks.push({
+            x: ox + c * (bw + pad),
+            y: oy + r * (bh + pad),
+            w: bw,
+            h: bh,
+            color: COLORS[r % COLORS.length],
+            hp: 1
+          });
+        }
+      }
+    }
+
+    function startGame() {
+      initBricks();
+      paddle.x = 210;
+      ball = { x: 260, y: 550, vx: (Math.random() > 0.5 ? 4 : -4), vy: -5.5, r: 8 };
+      score = 0;
+      lives = 3;
+      particles = [];
+      running = true;
+      document.getElementById('ui-overlay').style.display = 'none';
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scale = canvas.width / rect.width;
+      paddle.x = (e.clientX - rect.left) * scale - paddle.w / 2;
+      paddle.x = Math.max(10, Math.min(canvas.width - paddle.w - 10, paddle.x));
+    });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!e.touches.length) return;
+      const rect = canvas.getBoundingClientRect();
+      const scale = canvas.width / rect.width;
+      paddle.x = (e.touches[0].clientX - rect.left) * scale - paddle.w / 2;
+      paddle.x = Math.max(10, Math.min(canvas.width - paddle.w - 10, paddle.x));
+      e.preventDefault();
+    }, { passive: false });
+
+    function loop() {
+      if (!running) return;
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function update() {
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      // Wall bounces
+      if (ball.x - ball.r < 0) { ball.x = ball.r; ball.vx *= -1; }
+      if (ball.x + ball.r > canvas.width) { ball.x = canvas.width - ball.r; ball.vx *= -1; }
+      if (ball.y - ball.r < 0) { ball.y = ball.r; ball.vy *= -1; }
+
+      // Paddle bounce
+      if (ball.y + ball.r >= paddle.y && ball.y - ball.r <= paddle.y + paddle.h) {
+        if (ball.x >= paddle.x && ball.x <= paddle.x + paddle.w) {
+          ball.vy = -Math.abs(ball.vy);
+          const hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+          ball.vx = hit * 6.5;
+        }
+      }
+
+      // Bricks
+      let remaining = 0;
+      for (let b of bricks) {
+        if (b.hp <= 0) continue;
+        remaining++;
+        if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w &&
+            ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
+          b.hp = 0;
+          ball.vy *= -1;
+          score += 100;
+          // Burst
+          for (let i = 0; i < 8; i++) {
+            particles.push({
+              x: b.x + b.w / 2, y: b.y + b.h / 2,
+              vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6,
+              color: b.color, life: 1
+            });
+          }
+        }
+      }
+
+      if (remaining === 0) {
+        // Next stage
+        initBricks();
+        ball.vy = -Math.abs(ball.vy) * 1.1;
+      }
+
+      // Ball fell down
+      if (ball.y > canvas.height + 20) {
+        lives--;
+        if (lives <= 0) {
+          gameOver();
+          return;
+        } else {
+          ball = { x: 260, y: 550, vx: 4, vy: -5.5, r: 8 };
+        }
+      }
+
+      // Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.life -= 0.04;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function gameOver() {
+      running = false;
+      document.getElementById('title').textContent = 'OYUN BİTTİ';
+      document.getElementById('desc').textContent = 'Topu kaçırdın!';
+      const info = document.getElementById('score-info');
+      info.style.display = 'block';
+      info.innerHTML = `Skorun: <b style="color:#00f5d4">${score}</b>`;
+      document.getElementById('start-btn').textContent = 'TEKRAR OYNA';
+      document.getElementById('ui-overlay').style.display = 'flex';
+    }
+
+    function draw() {
+      ctx.fillStyle = '#070913';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Bricks
+      for (let b of bricks) {
+        if (b.hp <= 0) continue;
+        ctx.fillStyle = b.color;
+        ctx.shadowColor = b.color;
+        ctx.shadowBlur = 10;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.shadowBlur = 0;
+      }
+
+      // Particles
+      for (let p of particles) {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.fillRect(p.x, p.y, 4, 4);
+      }
+      ctx.globalAlpha = 1;
+
+      // Paddle
+      ctx.fillStyle = '#00f5d4';
+      ctx.shadowColor = '#00f5d4';
+      ctx.shadowBlur = 15;
+      ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+      ctx.shadowBlur = 0;
+
+      // Ball
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#00f5d4';
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // HUD
+      ctx.font = 'bold 16px "Orbitron", sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(`SKOR: ${score}`, 20, 32);
+      ctx.fillText(`CAN: ${'❤️'.repeat(lives)}`, canvas.width - 120, 32);
+    }
+  </script>
+</body>
+</html>

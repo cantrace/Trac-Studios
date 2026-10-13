@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+        bootstrap="test/bootstrap.php"
+        stderr="true"
+        colors="true"
+        cacheResult="false"
+        executionOrder="random"
+        failOnWarning="true"
+        failOnNotice="true"
+        failOnDeprecation="true"
+        failOnRisky="true"
+>
+    <testsuites>
+        <testsuite name="OG tests">
+            <directory>./test/og/</directory>
+        </testsuite>
+        <testsuite name="Simulation tests">
+            <directory>./test/simulation/</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>server/src/</directory>
+        </include>
+        <exclude>
+            <directory>server/src/Map/</directory>
+            <directory>server/src/Weapon/</directory>
+        </exclude>
+    </source>
+</phpunit>

@@ -1,0 +1,547 @@
+@font-face {
+    font-family: csIcons;
+    src: url("../../resources/font/csgo_icons.ttf");
+}
+
+.icons {
+    font-family: csIcons, Arial, serif;
+}
+
+#hud {
+    --color-attackers: #ff9145;
+    --color-defenders: #43b4fd;
+    --color-me: #afde68;
+    --color-me-hsl: 84, 64%, 64%;
+    --color-opponent: #de6868;
+    --color-opponent-hsl: 0, 64%, 64%;
+    --flash-bang-color: #FFFFFF;
+    --scope-size: 2px;
+    --hud-color: #ff8e8e;
+    --hud-color-shadow: #626262;
+    font-family: Arial, serif;
+    pointer-events: none;
+    user-select: none;
+    color: var(--hud-color);
+}
+
+#hud .color-me {
+    color: var(--color-me);
+}
+
+#hud .color-opponent {
+    color: var(--color-opponent);
+}
+
+#hud-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+#hud #cross {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 1;
+}
+
+#hud #scope {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    height: 82%;
+    width: auto;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    margin: auto auto;
+    box-shadow: 0 0 0 9999px #000, rgba(0, 0, 0, 0.5) 0 0 10px 4px inset;
+    opacity: 0;
+}
+
+#hud #scope .scope-cross {
+    width: 100%;
+    height: 100%;
+    filter: blur(0);
+}
+
+#hud #scope .scope-cross::before,
+#hud #scope .scope-cross::after {
+    width: 100%;
+    height: 100%;
+    display: block;
+    content: "";
+}
+
+#hud #scope .scope-cross::before {
+    border-left: var(--scope-size) solid #000000;
+    transform: translate(calc(50% - 0.5 * var(--scope-size)), 0%);
+}
+
+#hud #scope .scope-cross::after {
+    border-top: var(--scope-size) solid #000000;
+    transform: translate(0%, calc(-50% - 0.5 * var(--scope-size)));
+}
+
+#hud #flash {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: var(--flash-bang-color);
+    opacity: 0;
+}
+
+#hud #hit-feedback {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 25vw;
+    height: 25vw;
+    font-size: 4rem;
+    font-weight: bold;
+    color: #d75732;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#hud section {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+}
+
+#hud .left, #hud .right {
+    width: 30%;
+    min-width: 250px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-shadow: 0 0 2px var(--hud-color-shadow);
+}
+
+#hud .right {
+    text-align: right;
+    padding-right: 4px;
+}
+
+#hud .middle {
+    width: 40%;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    text-align: center;
+}
+
+#hud #scoreboard,
+#hud #game-menu,
+#hud #buy-menu {
+    font-size: 16px;
+    padding: 1rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.86);
+    min-width: 700px;
+    max-width: 1200px;
+    max-height: 1200px;
+    color: white;
+    overflow-y: auto;
+    text-shadow: none;
+}
+
+#hud #buy-menu, #hud #game-menu {
+    pointer-events: initial;
+}
+
+#hud #game-menu div[data-setting] > div.row > div {
+    float: left;
+    width: 50%;
+    padding: 16px 10px 4px 10px;
+}
+
+#hud #game-menu div[data-setting] > div.row > div p {
+    padding: 0;
+    margin: 0;
+}
+
+#hud #game-menu div[data-setting] input {
+    display: block;
+    width: 100%;
+    padding: 4px 10px;
+}
+
+#hud #game-menu button {
+    font-size: 1rem;
+}
+
+#hud #buy-menu p.disabled {
+    pointer-events: none;
+    text-decoration: line-through;
+    background-color: #7e6262;
+}
+
+#hud #buy-menu .title {
+    font-size: 22px;
+    text-align: center;
+}
+
+#hud #buy-menu h3 {
+    border-bottom: 2px solid #317000;
+    margin: 0;
+    padding: 12px 20px;
+}
+
+#hud #buy-menu .menu-grenades::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+#hud #buy-menu .menu-grenades > p {
+    float: left;
+    padding: 0px 12px;
+}
+
+#hud #buy-menu a {
+    color: #43b4fd;
+    cursor: pointer;
+}
+
+#hud #buy-menu a:hover {
+    color: #c4646c;
+}
+
+#hud #scoreboard small {
+    color: #efefef;
+}
+
+#hud #scoreboard table {
+    width: 100%;
+    border: 0;
+}
+
+#hud #scoreboard .score-my,
+#hud #scoreboard .score-opponent {
+    font-size: 50px;
+    padding-right: 8px;
+    text-align: center;
+    width: 70px;
+    padding-top: 22px;
+}
+
+#hud #scoreboard .score-my p,
+#hud #scoreboard .score-opponent p {
+    font-size: 14px;
+    text-align: center;
+    margin-top: 0;
+}
+
+#hud #scoreboard table thead {
+    text-align: center;
+}
+
+#hud #scoreboard table.player-stats.team-my tbody tr {
+    background-color: hsla(var(--color-me-hsl), .4);
+}
+
+#hud #scoreboard table.player-stats.team-other tbody tr {
+    background-color: hsla(var(--color-opponent-hsl), .4);
+}
+
+#hud #scoreboard table.player-stats tr:hover {
+    filter: brightness(150%);
+}
+
+#hud #scoreboard table.player-stats tbody tr.player-dead {
+    background-color: rgba(232, 11, 11, 0.45);
+}
+
+#hud #scoreboard .rounds-history {
+    height: 40px;
+    clear: both;
+    padding: 4px;
+    margin: 12px 10px;
+}
+
+#hud #scoreboard .rounds-history .round-number {
+    width: 20px;
+    height: 20px;
+    float: left;
+    position: relative;
+    margin: 0 2px;
+    text-align: center;
+}
+
+#hud #scoreboard .rounds-history .round-number div {
+    font-size: 12px;
+    position: absolute;
+    width: 20px;
+    height: 20px;
+}
+
+#hud #scoreboard .rounds-history .round-number span {
+    border: 0px solid transparent;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(222, 209, 209, 0.2);
+}
+
+#hud #scoreboard .rounds-history .round-number span.round-win-0 {
+    color: var(--color-defenders);
+    border-color: var(--color-defenders);
+}
+
+#hud #scoreboard .rounds-history .round-number span.round-win-1 {
+    color: var(--color-attackers);
+    border-color: var(--color-attackers);
+}
+
+#hud #scoreboard .rounds-history .round-number span.round-win-my-team {
+    top: -10px;
+    border-bottom-width: 2px;
+}
+
+#hud #scoreboard .rounds-history .round-number span.round-win-other-team {
+    top: 10px;
+    border-top-width: 2px;
+}
+
+#hud #radar {
+    margin: 4px 0 2rem 4px;
+    width: 220px;
+    height: 220px;
+    overflow: hidden;
+    border-radius: 50%;
+    background-color: #000000;
+    box-shadow: 0 0 5px 0 rgba(23, 21, 21, 0.8);
+    border: 1px solid var(--hud-color);
+}
+
+#hud #radar-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+#hud #round-damage-stat {
+    font-size: 80%;
+    color: #ffffff;
+    text-shadow: none;
+    margin: 0.9rem 0;
+}
+
+#hud #round-damage-stat table {
+    width: auto;
+    background: rgba(0, 0, 0, 0.6);
+    text-align: right;
+    border-collapse: collapse;
+}
+
+#hud #round-damage-stat table td,
+#hud #round-damage-stat table th {
+    padding: 2px 8px;
+    border-bottom: 1px solid #ffffff47;
+}
+
+#hud #round-damage-stat table tr:last-child td,
+#hud #round-damage-stat table tr:last-child th {
+    border-bottom: none;
+}
+
+#hud #round-damage-stat tr > *:nth-child(1) {
+    text-align: left;
+}
+
+#hud #round-damage-stat tr td:nth-child(2).highlight {
+    text-shadow: 0 0 2px green;
+}
+
+#hud #round-damage-stat tr td:nth-child(3).highlight {
+    text-shadow: 0 0 2px red;
+}
+
+#hud #fps-stats > div {
+    float: left;
+    margin-right: 4px;
+}
+
+#hud .bg {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+#hud .health {
+    padding: .6rem .8rem;
+    max-width: 250px;
+}
+
+#hud .hp {
+    padding-right: 1rem;
+    float: left;
+    width: 50%;
+}
+
+#hud .hp:last-child {
+    padding-right: 0;
+}
+
+#hud .money {
+    display: inline;
+    padding: .2rem .4rem;
+    font-weight: bold;
+}
+
+#hud .timer {
+    margin: 0 auto;
+    display: flex;
+    width: 200px;
+    height: 60px;
+    flex-direction: row;
+    justify-content: center;
+    padding-top: 2px;
+}
+
+#hud .team-me-alive, #hud .team-opponent-alive {
+    width: 50px;
+    line-height: 60px;
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #f5f5f5;
+}
+
+#hud .team-me-alive {
+    background-color: var(--color-me);
+}
+
+#hud .team-me-score {
+    color: var(--color-me);
+    border-right: 1px solid #dadada;
+}
+
+#hud .team-opponent-alive {
+    background-color: var(--color-opponent);
+}
+
+#hud .team-opponent-score {
+    color: var(--color-opponent);
+}
+
+#hud #time {
+    padding: 2px 0 4px 0;
+    color: white;
+    font-weight: bold;
+    border-bottom: 1px solid #dadada;
+}
+
+#hud .timer-center {
+    width: 100px;
+    font-size: 1rem;
+}
+
+#hud .timer-center .row * {
+    float: left;
+    width: 50%;
+    padding: 2px 4px;
+}
+
+#hud #message-top {
+    flex-grow: 1;
+    font-size: 130%;
+}
+
+#hud #message-bottom {
+    font-size: 90%;
+    font-style: italic;
+}
+
+#hud #message-top,
+#hud #message-bottom {
+    color: #000000;
+    padding: 2rem 0.5rem;
+}
+
+#hud #mode-spectate {
+    padding: 1.1rem;
+    margin-bottom: 8px;
+    border-left: 4px solid var(--hud-color);
+    border-right: 4px solid var(--hud-color);
+    background: var(--hud-color-shadow);
+    opacity: 0.8;
+}
+
+#hud #mode-spectate span {
+    font-weight: bolder;
+    font-size: 130%;
+}
+
+#hud .ammo {
+    display: inline;
+    padding: 4px 8px;
+}
+
+#hud .inventory {
+    margin-top: auto;
+    margin-bottom: 1rem;
+    font-size: 150%;
+}
+
+#hud .inventory .grenades span {
+    padding: 8px;
+}
+
+#hud .inventory .grenades span > span.count {
+    padding: 0;
+    font-size: 12px;
+    color: #ffebc5;
+    position: relative;
+    left: -6px;
+}
+
+#hud .inventory .highlight {
+    font-weight: bold;
+    color: #ffebc5;
+}
+
+#hud .kill-feed {
+    max-height: 220px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    color: #ffffff;
+    padding: 4px 2px;
+}
+
+#hud .kill-feed > p {
+    margin: 0;
+    padding: 0.3em 0;
+}
+
+#hud .kill-feed > p > span {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 2px solid transparent;
+    border-radius: 0.2em;
+    padding: 0.2em 0.5em;
+    vertical-align: middle;
+}
+
+#hud .kill-feed > p.highlight > span {
+    font-weight: bold;
+    border-color: #db0101;
+    background: rgba(41, 37, 37, 0.7);
+}
+
+#hud .kill-feed span.team-me {
+    color: var(--color-me);
+}
+
+#hud .kill-feed span.team-opponent {
+    color: var(--color-opponent);
+}
+

@@ -1,0 +1,211 @@
+<!Doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Counter-Strike: Football — Trac Studios</title>
+    <link rel="stylesheet" href="./assets/css/main.css">
+    <link rel="stylesheet" href="./assets/css/hud.css">
+    <script src="./peerjs.min.js"></script>
+    <style>
+        .cs-mode-btn {
+            display: block;
+            width: 100%;
+            margin: 8px 0;
+            padding: 12px 14px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #1c2438;
+            color: #fff;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .cs-mode-btn:hover {
+            background: #2a3754;
+            border-color: #00f5d4;
+            color: #00f5d4;
+        }
+        .cs-room-input {
+            width: 100%;
+            padding: 8px 10px;
+            margin: 6px 0 10px;
+            background: #0d1322;
+            border: 1px solid #334;
+            color: #00f5d4;
+            font-family: monospace;
+            font-size: 14px;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .cs-portal-back {
+            display: inline-block;
+            margin-top: 10px;
+            color: #00f5d4;
+            text-decoration: none;
+            font-size: 13px;
+        }
+        .cs-portal-back:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false" style="background:#000000">
+<div id="hud"><p style="font-size:120px;text-align:center;color:#FFF;padding:90px 40px">Loading....</p></div>
+<div id="ui">
+    <header>
+        <h1>Counter-Strike</h1>
+        <h2>F<span class="emojis">🏉💣</span>tball — Trac Studios</h2>
+    </header>
+    <div id="menu">
+        <button onclick="showModal('modal-modes')" style="background:#00f5d4;color:#0f172a;font-weight:900;">🔥 Hemen Oyna</button>
+        <button onclick="showModal('modal-setting')">Ayarlar (Settings)</button>
+        <button onclick="location.href='../../index.html'">⮌ Portala Dön</button>
+    </div>
+    <footer>
+        Trac Studios Edition • Three.js 3D Engine • WebRTC P2P & LAN Server Support
+    </footer>
+</div>
+
+<div id="modal" class="hidden">
+    <!-- Play Modes Modal -->
+    <div data-name="modal-modes" class="hidden">
+        <h3 style="margin-top:0;color:#00f5d4;font-size:18px;">Oyun Modunu Seç</h3>
+        
+        <button class="cs-mode-btn" onclick="startPracticeMode()">
+            🎯 <strong>Poligon / Antrenman Modu (Solo & Botlar)</strong>
+            <div style="font-size:11px;color:#aaa;margin-top:3px;">Sunucusuz! AK-47, AWP, USP dene, hedef botları vur.</div>
+        </button>
+
+        <div style="margin-top:14px;padding-top:10px;border-top:1px solid #333;">
+            <label style="font-size:12px;color:#bbb;">🌐 WebRTC P2P Çok Oyunculu Oda Kodu:</label>
+            <input type="text" id="p2p-room-code" class="cs-room-input" placeholder="TRAC-CS101" value="TRAC-CS101">
+            <div class="flex" style="gap:8px;">
+                <button class="btn" style="flex:1;" onclick="startP2PMode('host')">👑 Oda Kur (Host)</button>
+                <button class="btn" style="flex:1;" onclick="startP2PMode('guest')">🚀 Odaya Katıl</button>
+            </div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:10px;border-top:1px solid #333;">
+            <button class="btn" style="width:100%;" onclick="showModal('modal-join')">🖥️ Özel WebSocket LAN Sunucusu...</button>
+        </div>
+
+        <p class="flex" style="margin-top:14px;">
+            <button onclick="closeModal()" class="btn">× Kapat</button>
+        </p>
+    </div>
+
+    <!-- LAN WebSocket Join Modal -->
+    <div data-name="modal-join" class="hidden">
+        <p class="text-warning">Yerel ağdaki (Laboratuvar) veya genel WebSocket sunucu adresini girin:</p>
+        <textarea id="join-url">ws://localhost:8081?map=default&code=acode</textarea>
+        <p class="flex">
+            <button onclick="showModal('modal-modes')" class="btn">⮌ Geri</button>
+            <span>&nbsp;</span>
+            <button onclick="joinGameUrl(document.getElementById('join-url').value)" class="btn">↳ Sunucuya Bağlan</button>
+        </p>
+    </div>
+
+    <!-- Settings Modal -->
+    <div data-name="modal-setting" class="hidden">
+        <textarea rows="8" id="setting-form"></textarea>
+        <p class="flex">
+            <button onclick="closeModal()" class="btn">× Close</button>
+            <span>&nbsp;</span>
+            <button onclick="saveSetting(document.getElementById('setting-form').value);closeModal()" class="btn">✓ Save</button>
+        </p>
+    </div>
+</div>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "./assets/threejs/three.min.js?v167",
+            "three/addons/": "./assets/threejs/"
+        }
+    }
+</script>
+<script type="module">
+    import {Setting} from "./assets/js/Setting.js";
+
+    const settingElement = document.getElementById('setting-form')
+    if (settingElement) {
+        let userSettingObject
+        const userSettings = localStorage.getItem('setting')
+        if (userSettings === null || userSettings === '') {
+            const setting = new Setting()
+            userSettingObject = setting.getSetting()
+        } else {
+            userSettingObject = JSON.parse(userSettings)
+        }
+        settingElement.value = JSON.stringify(userSettingObject, null, 2)
+    }
+</script>
+<script>
+    const modal = document.getElementById('modal')
+    const ui = document.getElementById('ui')
+    const hud = document.getElementById('hud')
+
+    function startPracticeMode() {
+        joinGameUrl('local://practice?map=default&mode=practice&code=practice')
+    }
+
+    function startP2PMode(role) {
+        const roomCode = (document.getElementById('p2p-room-code').value || 'TRAC-CS101').trim()
+        joinGameUrl(`peer://${roomCode}?map=default&mode=p2p&room=${roomCode}&role=${role}&code=room-${roomCode}`)
+    }
+
+    function joinGameUrl(url) {
+        if (modal) modal.remove()
+        if (ui) ui.remove()
+
+        console.log("Launching CS game with URL:", url)
+        import("./assets/js/start.js").then(async (ns) => {
+            await ns.launchGame(document.body, hud, localStorage.getItem('setting'), url)
+        }).catch((error) => {
+            console.error("CS launch error:", error)
+            alert("Oyun başlatma hatası: " + error.message)
+        })
+    }
+
+    function saveSetting(json) {
+        localStorage.setItem('setting', json)
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden')
+        modal.querySelectorAll('[data-name]').forEach(function (el) {
+            el.classList.add('hidden')
+        })
+    }
+
+    function showModal(name) {
+        const menu = modal.querySelector(`[data-name="${name}"]`)
+        if (!menu) {
+            return false
+        }
+
+        modal.classList.remove('hidden')
+        modal.querySelectorAll('[data-name]').forEach(function (el) {
+            el.classList.add('hidden')
+        })
+        menu.classList.remove('hidden')
+    }
+
+    // Auto join via URL parameters if requested
+    const qParams = new URLSearchParams(window.location.search);
+    if (qParams.get('mode') === 'practice') {
+        startPracticeMode();
+    } else if (qParams.get('mode') === 'p2p') {
+        const r = qParams.get('room') || 'TRAC-CS101';
+        const role = qParams.get('role') || 'host';
+        startP2PMode(role);
+    } else if (qParams.get('ws')) {
+        joinGameUrl(decodeURIComponent(qParams.get('ws')));
+    } else if (window.location.search === '?dev-join') {
+        joinGameUrl(document.getElementById('join-url').value);
+    }
+</script>
+</body>
+</html>

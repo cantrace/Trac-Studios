@@ -1,0 +1,15 @@
+includes:
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+
+parameters:
+    paths:
+        - cli/
+        - server/src/
+        - test/
+    level: max
+    checkMissingCallableSignature: true
+    ignoreErrors:
+        -
+            message: '~If condition is always true.~'
+            path: server/src/Map/*Map.php

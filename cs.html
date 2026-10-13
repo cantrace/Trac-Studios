@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Counter-Strike 3D Online — Trac Studios</title>
+  <link rel="icon" type="image/x-icon" href="Counter-Strike-master/electron/icons/icon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #080c16;
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      height: 56px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0, 245, 212, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #00f5d4, #00b4d8);
+      color: #0f172a;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 13px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      letter-spacing: 1px;
+    }
+
+    .title {
+      font-weight: 800;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 245, 212, 0.12);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      color: #00f5d4;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: #00f5d4;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00f5d4;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .room-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .room-input {
+      background: #0f172a;
+      border: 1px solid rgba(0, 245, 212, 0.3);
+      color: #00f5d4;
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      width: 110px;
+      text-transform: uppercase;
+      outline: none;
+    }
+
+    .room-input:focus {
+      border-color: #00f5d4;
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.3);
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      background: #1e293b;
+      color: #f1f5f9;
+      border: 1px solid #334155;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: #334155;
+      border-color: #00f5d4;
+      color: #00f5d4;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #00f5d4, #00b4d8);
+      color: #0f172a;
+      border: none;
+      font-weight: 700;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #00b4d8, #00f5d4);
+      box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
+    }
+
+    .btn-panic {
+      background: #3f1d24;
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    .btn-panic:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    /* Game Container */
+    #game-container {
+      flex: 1;
+      position: relative;
+      background: #000;
+      width: 100%;
+      height: calc(100vh - 56px);
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* Floating Controls Bar at Bottom */
+    .controls-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 16px;
+      border-radius: 30px;
+      font-size: 11px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      pointer-events: none;
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    .controls-hint kbd {
+      background: #334155;
+      color: #00f5d4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    /* Fake Homework Panic Screen (H key) */
+    #panic-screen {
+      position: fixed;
+      inset: 0;
+      background: #1e1e1e;
+      z-index: 99999;
+      display: none;
+      flex-direction: column;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      color: #d4d4d4;
+      user-select: text;
+    }
+
+    .vscode-top {
+      height: 35px;
+      background: #2d2d2d;
+      border-bottom: 1px solid #1e1e1e;
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #cccccc;
+    }
+
+    .vscode-editor {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      line-height: 1.6;
+      white-space: pre;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <a href="index.html" class="brand">
+      <div class="logo-badge">TRAC</div>
+      <div class="title">
+        Counter-Strike 3D
+        <span class="live-badge">
+          <span class="live-dot"></span> ÇOK OYUNCULU & POLİGON
+        </span>
+      </div>
+    </a>
+
+    <!-- Room & Quick Launch Controls -->
+    <div class="room-actions">
+      <button class="btn" onclick="launchMode('practice')">
+        <span>🎯</span> Poligon (Solo)
+      </button>
+      <input type="text" id="cs-room-input" class="room-input" placeholder="TRAC-CS1" value="TRAC-CS1">
+      <button class="btn btn-primary" onclick="launchMode('p2p-host')">
+        <span>👑</span> Oda Kur
+      </button>
+      <button class="btn" onclick="launchMode('p2p-guest')">
+        <span>🚀</span> Katıl
+      </button>
+    </div>
+
+    <!-- Right Actions -->
+    <div class="actions">
+      <button class="btn btn-panic" onclick="triggerPanic()" title="Hoca gelince bas!">
+        <span>🚨</span> Hoca Geldi (H)
+      </button>
+      <button class="btn" onclick="copyRoomLink()" title="Oda linkini arkadaşına kopyala">
+        <span>🔗</span> Link
+      </button>
+      <button class="btn" onclick="toggleFullScreen()" title="Tam Ekran">
+        <span>⛶</span>
+      </button>
+      <a href="index.html" class="btn">
+        <span>✕</span> Portal
+      </a>
+    </div>
+  </header>
+
+  <!-- Game Iframe Container -->
+  <div id="game-container">
+    <iframe id="game-frame" src="Counter-Strike-master/www/index.html" allow="autoplay; fullscreen; pointer-lock"></iframe>
+
+    <div class="controls-hint">
+      <span><kbd>WASD</kbd> Yürü</span>
+      <span><kbd>Fare</kbd> Nişan / Ateş</span>
+      <span><kbd>R</kbd> Şarjör</span>
+      <span><kbd>1-2-3</kbd> Silah Değiş</span>
+      <span><kbd>B</kbd> Market</span>
+      <span><kbd>Ctrl</kbd> Çömel</span>
+      <span><kbd>H</kbd> 🚨 Gizle</span>
+    </div>
+  </div>
+
+  <!-- Panic Screen (Fake VS Code Homework) -->
+  <div id="panic-screen">
+    <div class="vscode-top">
+      <span>📄 main.py — Bilişim Teknolojileri ve Yazılım Dersi Proje Ödevi</span>
+      <span style="color:#888;">Kaydedildi • Python 3.11</span>
+    </div>
+    <div class="vscode-editor">
+<span style="color:#6a9955;"># ========================================================
+# BİLİŞİM TEKNOLOJİLERİ VE YAZILIM ALANI PROJESİ
+# Konu: Ağ Protokolleri ve 3D Grafik Optimizasyonu
+# Öğrenci Projesi - Trac Studios
+# ========================================================</span>
+
+<span style="color:#569cd6;">import</span> <span style="color:#4ec9b0;">socket</span>
+<span style="color:#569cd6;">import</span> <span style="color:#4ec9b0;">time</span>
+<span style="color:#569cd6;">import</span> <span style="color:#4ec9b0;">threading</span>
+
+<span style="color:#569cd6;">class</span> <span style="color:#4ec9b0;">AgIletisimSimulasyonu</span>:
+    <span style="color:#569cd6;">def</span> <span style="color:#dcdcaa;">__init__</span>(<span style="color:#9cdcfe;">self</span>, <span style="color:#9cdcfe;">host</span>=<span style="color:#ce9178;">"127.0.0.1"</span>, <span style="color:#9cdcfe;">port</span>=8080):
+        <span style="color:#9cdcfe;">self</span>.<span style="color:#9cdcfe;">host</span> = <span style="color:#9cdcfe;">host</span>
+        <span style="color:#9cdcfe;">self</span>.<span style="color:#9cdcfe;">port</span> = <span style="color:#9cdcfe;">port</span>
+        <span style="color:#9cdcfe;">self</span>.<span style="color:#9cdcfe;">veri_paketleri</span> = []
+
+    <span style="color:#569cd6;">def</span> <span style="color:#dcdcaa;">paket_ilet</span>(<span style="color:#9cdcfe;">self</span>, <span style="color:#9cdcfe;">veri</span>):
+        <span style="color:#9cdcfe;">self</span>.<span style="color:#9cdcfe;">veri_paketleri</span>.<span style="color:#dcdcaa;">append</span>(<span style="color:#9cdcfe;">veri</span>)
+        <span style="color:#dcdcaa;">print</span>(<span style="color:#ce9178;">f"[AG PROTOKOLÜ] Paket iletildi: {veri}"</span>)
+        <span style="color:#569cd6;">return</span> <span style="color:#569cd6;">True</span>
+
+    <span style="color:#569cd6;">def</span> <span style="color:#dcdcaa;">gecikme_olc</span>(<span style="color:#9cdcfe;">self</span>):
+        <span style="color:#9cdcfe;">baslangic</span> = <span style="color:#4ec9b0;">time</span>.<span style="color:#dcdcaa;">time</span>()
+        <span style="color:#9cdcfe;">self</span>.<span style="color:#dcdcaa;">paket_ilet</span>(<span style="color:#ce9178;">"PING_TEST_VERISI"</span>)
+        <span style="color:#569cd6;">return</span> (<span style="color:#4ec9b0;">time</span>.<span style="color:#dcdcaa;">time</span>() - <span style="color:#9cdcfe;">baslangic</span>) * 1000
+
+<span style="color:#6a9955;"># Simülasyon döngüsü çalışıyor...</span>
+<span style="color:#9cdcfe;">sim</span> = <span style="color:#4ec9b0;">AgIletisimSimulasyonu</span>()
+<span style="color:#9cdcfe;">ping</span> = <span style="color:#9cdcfe;">sim</span>.<span style="color:#dcdcaa;">gecikme_olc</span>()
+<span style="color:#dcdcaa;">print</span>(<span style="color:#ce9178;">f"Ölçülen ping: {ping:.2f} ms"</span>)
+    </div>
+  </div>
+
+  <script>
+    const iframe = document.getElementById('game-frame');
+    const roomInput = document.getElementById('cs-room-input');
+
+    // Parse URL room params if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomFromUrl = urlParams.get('room');
+    const modeFromUrl = urlParams.get('mode');
+
+    if (roomFromUrl) {
+      roomInput.value = roomFromUrl;
+      launchMode(modeFromUrl || 'p2p-guest');
+    }
+
+    function launchMode(mode) {
+      const room = (roomInput.value || 'TRAC-CS1').trim().toUpperCase();
+      if (mode === 'practice') {
+        iframe.src = `Counter-Strike-master/www/index.html?mode=practice`;
+      } else if (mode === 'p2p-host') {
+        iframe.src = `Counter-Strike-master/www/index.html?mode=p2p&room=${room}&role=host`;
+      } else if (mode === 'p2p-guest') {
+        iframe.src = `Counter-Strike-master/www/index.html?mode=p2p&room=${room}&role=guest`;
+      }
+    }
+
+    function copyRoomLink() {
+      const room = (roomInput.value || 'TRAC-CS1').trim().toUpperCase();
+      const shareUrl = `${window.location.origin}${window.location.pathname}?room=${room}&mode=p2p-guest`;
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        alert(`Oda linki kopyalandı:\n${shareUrl}\n\nArkadaşın bu linki açtığında doğrudan odana bağlanır!`);
+      }).catch(() => {
+        prompt("Oda Linki (Kopyala):", shareUrl);
+      });
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+
+    // Teacher Panic Mode (H key)
+    let panicActive = false;
+    const panicScreen = document.getElementById('panic-screen');
+
+    function triggerPanic() {
+      panicActive = !panicActive;
+      panicScreen.style.display = panicActive ? 'flex' : 'none';
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'h' || e.key === 'H') {
+        triggerPanic();
+      }
+    });
+  </script>
+</body>
+</html>

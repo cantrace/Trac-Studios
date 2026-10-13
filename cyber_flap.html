@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Flap — Trac Studios</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #090d16;
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+    }
+    .back-btn {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+      color: #00f5d4;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+    .back-btn:hover { background: #00f5d4; color: #090d16; }
+    #game-container {
+      position: relative;
+      width: 420px;
+      height: 600px;
+      max-width: 95vw;
+      max-height: 85vh;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(0, 245, 212, 0.2), 0 20px 40px rgba(0,0,0,0.8);
+      border: 2px solid rgba(0, 245, 212, 0.6);
+      background: #05070e;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    #ui-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(5, 7, 14, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 10;
+      text-align: center;
+      padding: 24px;
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 32px;
+      background: linear-gradient(135deg, #00f5d4, #00b4d8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    p { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+    .play-btn {
+      background: linear-gradient(135deg, #00f5d4, #00b4d8);
+      color: #05070e;
+      border: none;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 16px;
+      padding: 14px 32px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(0, 245, 212, 0.5);
+      transition: transform 0.15s;
+    }
+    .play-btn:hover { transform: scale(1.05); }
+    .score-display {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="back-btn">← Trac Studios Portala Dön</a>
+  </header>
+
+  <div id="game-container">
+    <canvas id="c"></canvas>
+    <div id="ui-overlay">
+      <h1 id="title">CYBER FLAP</h1>
+      <p id="desc">Boşluk (Space) veya Ekrana Tıkla · Siber Roketi Engellerin Arasından Geçir!</p>
+      <div id="score-info" class="score-display" style="display:none;"></div>
+      <button class="play-btn" id="start-btn" onclick="startGame()">BAŞLA</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 420;
+    canvas.height = 600;
+
+    let bird = { x: 80, y: 300, vy: 0, r: 16, angle: 0 };
+    let pipes = [];
+    let particles = [];
+    let stars = [];
+    let score = 0;
+    let highScore = localStorage.getItem('trac_cyber_flap_hi') || 0;
+    let running = false;
+    let frame = 0;
+
+    for (let i = 0; i < 40; i++) {
+      stars.push({ x: Math.random() * 420, y: Math.random() * 600, s: Math.random() * 2 + 1, v: Math.random() * 0.5 + 0.2 });
+    }
+
+    function jump() {
+      if (!running) return;
+      bird.vy = -7.5;
+      // Thrust particles
+      for (let i = 0; i < 6; i++) {
+        particles.push({
+          x: bird.x - 14,
+          y: bird.y + (Math.random() * 6 - 3),
+          vx: -(Math.random() * 3 + 2),
+          vy: Math.random() * 2 - 1,
+          life: 1,
+          color: Math.random() > 0.5 ? '#00f5d4' : '#7928ca'
+        });
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        if (!running && document.getElementById('ui-overlay').style.display !== 'none') {
+          startGame();
+        } else {
+          jump();
+        }
+        e.preventDefault();
+      }
+    });
+    canvas.addEventListener('mousedown', () => {
+      if (running) jump();
+    });
+    canvas.addEventListener('touchstart', (e) => {
+      if (running) { jump(); e.preventDefault(); }
+    });
+
+    function startGame() {
+      bird = { x: 80, y: 300, vy: 0, r: 16, angle: 0 };
+      pipes = [];
+      particles = [];
+      score = 0;
+      frame = 0;
+      running = true;
+      document.getElementById('ui-overlay').style.display = 'none';
+      requestAnimationFrame(loop);
+    }
+
+    function gameOver() {
+      running = false;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('trac_cyber_flap_hi', highScore);
+      }
+      document.getElementById('title').textContent = 'OYUN BİTTİ';
+      document.getElementById('desc').textContent = 'Engellere çarptın!';
+      const info = document.getElementById('score-info');
+      info.style.display = 'block';
+      info.innerHTML = `Skor: <b style="color:#00f5d4">${score}</b> | En Yüksek: <b style="color:#f59e0b">${highScore}</b>`;
+      document.getElementById('start-btn').textContent = 'TEKRAR DENE';
+      document.getElementById('ui-overlay').style.display = 'flex';
+    }
+
+    function loop() {
+      if (!running) return;
+      frame++;
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function update() {
+      bird.vy += 0.38;
+      bird.y += bird.vy;
+      bird.angle = Math.max(-0.4, Math.min(1.2, bird.vy * 0.08));
+
+      // Stars
+      for (let s of stars) {
+        s.x -= s.v;
+        if (s.x < 0) s.x = 420;
+      }
+
+      // Spawn pipes
+      if (frame % 90 === 0) {
+        const gap = 140;
+        const top = Math.random() * (320 - 60) + 60;
+        pipes.push({ x: 430, top, bottom: 600 - top - gap, passed: false });
+      }
+
+      for (let i = pipes.length - 1; i >= 0; i--) {
+        const p = pipes[i];
+        p.x -= 2.6;
+
+        if (!p.passed && p.x + 45 < bird.x) {
+          p.passed = true;
+          score++;
+        }
+
+        // Collision
+        if (bird.x + bird.r > p.x && bird.x - bird.r < p.x + 50) {
+          if (bird.y - bird.r < p.top || bird.y + bird.r > 600 - p.bottom) {
+            gameOver();
+            return;
+          }
+        }
+
+        if (p.x < -60) pipes.splice(i, 1);
+      }
+
+      if (bird.y - bird.r < 0 || bird.y + bird.r > 600) {
+        gameOver();
+        return;
+      }
+
+      // Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.life -= 0.04;
+        if (pt.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#05070e';
+      ctx.fillRect(0, 0, 420, 600);
+
+      // Stars
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      for (let s of stars) {
+        ctx.fillRect(s.x, s.y, s.s, s.s);
+      }
+
+      // Pipes
+      for (let p of pipes) {
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = '#00f5d4';
+        ctx.lineWidth = 3;
+
+        // Top pipe
+        ctx.fillRect(p.x, 0, 50, p.top);
+        ctx.strokeRect(p.x, -2, 50, p.top + 2);
+        // Lip
+        ctx.fillStyle = '#00f5d4';
+        ctx.fillRect(p.x - 3, p.top - 12, 56, 12);
+
+        // Bottom pipe
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(p.x, 600 - p.bottom, 50, p.bottom);
+        ctx.strokeRect(p.x, 600 - p.bottom, 50, p.bottom + 2);
+        // Lip
+        ctx.fillStyle = '#00f5d4';
+        ctx.fillRect(p.x - 3, 600 - p.bottom, 56, 12);
+      }
+
+      // Rocket Particles
+      for (let pt of particles) {
+        ctx.fillStyle = pt.color;
+        ctx.globalAlpha = pt.life;
+        ctx.fillRect(pt.x, pt.y, 4, 4);
+      }
+      ctx.globalAlpha = 1;
+
+      // Rocket Bird
+      ctx.save();
+      ctx.translate(bird.x, bird.y);
+      ctx.rotate(bird.angle);
+
+      // Rocket body
+      ctx.fillStyle = '#f1f5f9';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 18, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cockpit visor
+      ctx.fillStyle = '#00f5d4';
+      ctx.beginPath();
+      ctx.ellipse(6, -2, 7, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Wing fin
+      ctx.fillStyle = '#7928ca';
+      ctx.beginPath();
+      ctx.moveTo(-10, -4);
+      ctx.lineTo(-16, -14);
+      ctx.lineTo(-4, -4);
+      ctx.fill();
+
+      // Engine glow
+      ctx.fillStyle = '#ff007f';
+      ctx.beginPath();
+      ctx.moveTo(-16, -4);
+      ctx.lineTo(-24, 0);
+      ctx.lineTo(-16, 4);
+      ctx.fill();
+
+      ctx.restore();
+
+      // Score HUD
+      ctx.font = 'bold 28px "Orbitron", sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.fillText(score, 210, 50);
+    }
+  </script>
+</body>
+</html>

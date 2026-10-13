@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Neon Dodge & Survival RPG</title>
+    <!-- Tailwind CSS for futuristic UI overlays -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Orbitron for futuristic arcade typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #05050a;
+            color: #ffffff;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas {
+            display: block;
+            background: #070514;
+        }
+        .neon-glow-cyan {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.5);
+        }
+        .neon-glow-pink {
+            text-shadow: 0 0 10px rgba(255, 0, 127, 0.8), 0 0 20px rgba(255, 0, 127, 0.5);
+        }
+        .neon-glow-amber {
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.5);
+        }
+        .neon-box-cyan {
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 15px rgba(0, 243, 255, 0.15);
+            border: 2px solid rgba(0, 243, 255, 0.7);
+        }
+        .neon-box-pink {
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4), inset 0 0 15px rgba(255, 0, 127, 0.15);
+            border: 2px solid rgba(255, 0, 127, 0.7);
+        }
+        .neon-box-amber {
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.4), inset 0 0 15px rgba(251, 191, 36, 0.15);
+            border: 2px solid rgba(251, 191, 36, 0.7);
+        }
+        .arcade-btn {
+            transition: all 0.2s ease;
+        }
+        .arcade-btn:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.9);
+        }
+        .arcade-btn:active {
+            transform: scale(0.98);
+        }
+        .shop-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+        }
+        .shop-card:hover {
+            border-color: rgba(0, 243, 255, 1);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col items-center justify-center relative">
+
+    <a href="index.html" class="pointer-events-auto absolute top-4 left-4 z-50 bg-slate-900/90 border border-cyan-400 text-cyan-400 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-cyan-400 hover:text-black transition">← Trac Studios Portala Dön</a>
+
+    <div id="hud" class="absolute top-4 left-0 w-full px-6 flex justify-between items-center pointer-events-none hidden z-10">
+        <div class="flex items-center space-x-3">
+            <div class="bg-slate-900/85 px-4 py-2 rounded-xl neon-box-cyan flex items-center space-x-2">
+                <span class="text-cyan-400 text-xs tracking-wider">SKOR:</span>
+                <span id="scoreVal" class="text-lg font-bold text-white">0</span>
+            </div>
+            <div class="bg-slate-900/85 px-4 py-2 rounded-xl neon-box-amber flex items-center space-x-2 pointer-events-auto cursor-pointer" id="openShopBtn" title="Mağazayı Aç [B]">
+                <span class="text-amber-400 text-xs tracking-wider">YILDIZ:</span>
+                <span id="starsVal" class="text-lg font-bold text-amber-300">0</span>
+                <span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded ml-1 animate-pulse">MAĞAZA [B]</span>
+            </div>
+        </div>
+        
+        <!-- Center Experience & Wave Info -->
+        <div class="flex flex-col items-center">
+            <div class="bg-slate-900/85 px-4 py-1.5 rounded-xl border border-indigo-500/50 flex items-center space-x-3 mb-1">
+                <span class="text-indigo-400 text-xs">SEVİYE <span id="levelVal" class="font-bold text-white">1</span></span>
+                <div class="w-32 bg-slate-950 h-2.5 rounded-full overflow-hidden border border-indigo-500/30">
+                    <div id="xpBar" class="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full w-0 transition-all duration-200"></div>
+                </div>
+            </div>
+            <div class="text-xs text-cyan-300 font-bold tracking-widest">DALGA: <span id="waveVal">1</span></div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <div class="bg-slate-900/85 px-4 py-2 rounded-xl neon-box-pink flex items-center space-x-2">
+                <span class="text-pink-400 text-xs tracking-wider">CAN:</span>
+                <span id="healthVal" class="text-lg font-bold text-pink-400">100 / 100</span>
+            </div>
+            <button id="pauseBtn" class="pointer-events-auto bg-slate-900/85 hover:bg-slate-800 text-cyan-400 border border-cyan-500 px-3 py-2 rounded-xl text-xs tracking-widest font-bold transition">
+                DURDUR
+            </button>
+        </div>
+    </div>
+
+    <!-- Minimap UI Container -->
+    <div id="minimapContainer" class="absolute bottom-6 right-6 w-36 h-36 bg-slate-950/80 rounded-2xl border-2 border-cyan-500/50 shadow-2xl overflow-hidden hidden z-10 pointer-events-none">
+        <canvas id="minimapCanvas" width="144" height="144" class="w-full h-full"></canvas>
+    </div>
+
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas" class="w-full h-full absolute inset-0"></canvas>
+
+    <div id="startMenu" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center z-30 p-4">
+        <div class="text-center max-w-xl mx-auto space-y-6">
+            <h1 class="text-4xl md:text-6xl font-black text-cyan-400 neon-glow-cyan tracking-wider">NEON SURVIVAL RPG</h1>
+            <p class="text-slate-300 text-xs md:text-sm leading-relaxed">
+                Geniş haritada <span class="text-cyan-400 font-bold">W, A, S, D</span> ile hareket et. Kamikaze, Keskin Nişancı ve Patron düşmanlara karşı savaş. Yıldızları ve XP'leri topla, mağazadan güçlü geliştirmeler aç!
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
+                <button id="startBtn" class="arcade-btn bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black px-8 py-4 rounded-xl text-base neon-box-cyan tracking-widest cursor-pointer">
+                    MACERAYA BAŞLA
+                </button>
+            </div>
+            <div class="text-xs text-slate-500 pt-4">
+                İpucu: Mağazayı açmak için oyun içinde <span class="text-amber-400 font-bold">B</span> tuşuna basabilirsin.
+            </div>
+        </div>
+    </div>
+
+    <!-- Shop Menu Overlay -->
+    <div id="shopMenu" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center z-40 p-4 hidden">
+        <div class="max-w-3xl w-full bg-slate-900/95 border-2 border-amber-500/80 p-6 md:p-8 rounded-3xl neon-box-amber flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-black text-amber-400 neon-glow-amber">GELİŞTİRME MAĞAZASI</h2>
+                    <p class="text-xs text-slate-400 mt-1">Yıldızlarını harcayarak gemini efsanevi hale getir!</p>
+                </div>
+                <div class="bg-slate-950 px-4 py-2 rounded-xl border border-amber-500/50 flex items-center space-x-2">
+                    <span class="text-amber-400 text-xs">BAKİYE:</span>
+                    <span id="shopStarsVal" class="text-xl font-bold text-amber-300">0</span>
+                </div>
+            </div>
+
+            <!-- Shop Items Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6 overflow-y-auto pr-2">
+                <!-- Speed Boost -->
+                <div class="shop-card p-4 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-cyan-400 font-bold text-sm">Hız Artışı</h3>
+                            <span id="lvlSpeed" class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded">Seviye 1</span>
+                        </div>
+                        <p class="text-slate-400 text-xs mt-2">Harita üzerindeki hareket hızını artırır.</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4 pt-3 border-t border-slate-800/80">
+                        <span id="costSpeed" class="text-amber-400 font-bold text-xs">50 Yıldız</span>
+                        <button onclick="buyUpgrade('speed')" class="arcade-btn bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl">SATIN AL</button>
+                    </div>
+                </div>
+
+                <!-- Attack Damage -->
+                <div class="shop-card p-4 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-pink-400 font-bold text-sm">Hasar Gücü</h3>
+                            <span id="lvlDamage" class="text-xs bg-pink-500/20 text-pink-300 px-2 py-1 rounded">Seviye 1</span>
+                        </div>
+                        <p class="text-slate-400 text-xs mt-2">Mermi ve lazer hasarını artırır.</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4 pt-3 border-t border-slate-800/80">
+                        <span id="costDamage" class="text-amber-400 font-bold text-xs">60 Yıldız</span>
+                        <button onclick="buyUpgrade('damage')" class="arcade-btn bg-pink-500 hover:bg-pink-400 text-white font-bold text-xs px-3 py-1.5 rounded-xl">SATIN AL</button>
+                    </div>
+                </div>
+
+                <!-- Max Health -->
+                <div class="shop-card p-4 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-emerald-400 font-bold text-sm">Maksimum Can</h3>
+                            <span id="lvlHealth" class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded">Seviye 1</span>
+                        </div>
+                        <p class="text-slate-400 text-xs mt-2">Toplam can havuzunu büyütür ve tamamen iyileştirir.</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4 pt-3 border-t border-slate-800/80">
+                        <span id="costHealth" class="text-amber-400 font-bold text-xs">75 Yıldız</span>
+                        <button onclick="buyUpgrade('health')" class="arcade-btn bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl">SATIN AL</button>
+                    </div>
+                </div>
+
+                <!-- Multi Shot -->
+                <div class="shop-card p-4 rounded-2xl border border-slate-800 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-amber-400 font-bold text-sm">Çoklu Mermi</h3>
+                            <span id="lvlMultishot" class="text-xs bg-amber-500/20 text-amber-300 px-2 py-1 rounded">Seviye 1</span>
+                        </div>
+                        <p class="text-slate-400 text-xs mt-2">Aynı anda birden fazla mermi ateşlemeni sağlar.</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4 pt-3 border-t border-slate-800/80">
+                        <span id="costMultishot" class="text-amber-400 font-bold text-xs">120 Yıldız</span>
+                        <button onclick="buyUpgrade('multishot')" class="arcade-btn bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl">SATIN AL</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Close Shop Button -->
+            <div class="text-center pt-2">
+                <button id="closeShopBtn" class="arcade-btn bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 font-black px-8 py-3 rounded-xl tracking-wider text-sm">
+                    OYUNA DÖN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Menu -->
+    <div id="gameOverMenu" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center z-30 p-4 hidden">
+        <div class="text-center max-w-md mx-auto space-y-6 bg-slate-900/80 p-8 rounded-3xl neon-box-pink">
+            <h2 class="text-4xl font-black text-pink-500 neon-glow-pink tracking-wider">OYUN BİTTİ</h2>
+            <div class="space-y-2 text-slate-300 text-sm">
+                <p>Ulaşılan Dalga: <span id="finalWave" class="text-cyan-400 font-bold text-lg">1</span></p>
+                <p>Kazanılan Skor: <span id="finalScore" class="text-cyan-400 font-bold text-lg">0</span></p>
+                <p class="text-xs text-slate-400 pt-2">En Yüksek Skor: <span id="highScore" class="text-white font-bold">0</span></p>
+            </div>
+            <button id="restartBtn" class="arcade-btn w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black py-4 rounded-xl text-sm neon-box-pink tracking-widest cursor-pointer">
+                TEKRAR OYNA
+            </button>
+        </div>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pauseMenu" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-30 p-4 hidden">
+        <div class="text-center space-y-6 bg-slate-900/90 p-8 rounded-3xl neon-box-cyan">
+            <h2 class="text-3xl font-black text-cyan-400 neon-glow-cyan">OYUN DURAKLATILDI</h2>
+            <div class="flex flex-col gap-4">
+                <button id="resumeBtn" class="arcade-btn bg-cyan-500 text-slate-950 font-bold px-8 py-3 rounded-xl tracking-wider text-sm">DEVAM ET</button>
+                <button id="quitBtn" class="arcade-btn bg-slate-800 text-pink-400 border border-pink-500 px-8 py-3 rounded-xl tracking-wider text-sm">ANA MENÜ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playShoot() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(500, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+            playStar() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(659.25, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1318.5, this.ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+            playHit() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(40, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+            playExplosion() {
+                this.init();
+                if (!this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 0.3;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(400, this.ctx.currentTime);
+                filter.frequency.linearRampToValueAtTime(50, this.ctx.currentTime + 0.3);
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+            }
+            playLevelUp() {
+                this.init();
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.5];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.08);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + idx * 0.08 + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.08);
+                    osc.stop(this.ctx.currentTime + idx * 0.08 + 0.15);
+                });
+            }
+        }
+        const soundFX = new SoundFX();
+    </script>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let gameState = 'START'; // 'START', 'PLAYING', 'PAUSED', 'SHOP', 'GAMEOVER'
+
+        // World Bounds (Expanded Map)
+        const WORLD_WIDTH = 3000;
+        const WORLD_HEIGHT = 3000;
+
+        // Camera Object
+        let camera = { x: 0, y: 0 };
+
+        // Input Tracking
+        const keys = { w: false, a: false, s: false, d: false };
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'w' || e.key === 'ArrowUp') keys.w = true;
+            if (key === 'a' || e.key === 'ArrowLeft') keys.a = true;
+            if (key === 's' || e.key === 'ArrowDown') keys.s = true;
+            if (key === 'd' || e.key === 'ArrowRight') keys.d = true;
+            if (key === 'b') {
+                if (gameState === 'PLAYING') openShop();
+                else if (gameState === 'SHOP') closeShop();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'w' || e.key === 'ArrowUp') keys.w = false;
+            if (key === 'a' || e.key === 'ArrowLeft') keys.a = false;
+            if (key === 's' || e.key === 'ArrowDown') keys.s = false;
+            if (key === 'd' || e.key === 'ArrowRight') keys.d = false;
+        });
+
+        // Game stats & Upgrade state
+        let score = 0;
+        let starsCount = 0;
+        let wave = 1;
+        let playerLevel = 1;
+        let playerXp = 0;
+        let nextLevelXp = 100;
+        let screenShakeTimer = 0;
+
+        let player = {
+            x: WORLD_WIDTH / 2,
+            y: WORLD_HEIGHT / 2,
+            size: 22,
+            baseSpeed: 6,
+            speed: 6,
+            maxHealth: 100,
+            health: 100,
+            color: '#00f3ff',
+            trail: [],
+            shootCooldown: 0
+        };
+
+        // Upgrade configs
+        const upgrades = {
+            speed: { level: 1, cost: 50, costMult: 1.6 },
+            damage: { level: 1, cost: 60, costMult: 1.7 },
+            health: { level: 1, cost: 75, costMult: 1.8 },
+            multishot: { level: 1, cost: 120, costMult: 2.0 }
+        };
+
+        let bullets = [];
+        let enemyBullets = [];
+        let enemies = [];
+        let items = []; // Stars & XP gems
+        let particles = [];
+        let floatingTexts = [];
+        let highScore = localStorage.getItem('neon_rpg_highscore') || 0;
+
+        function resetGame() {
+            score = 0;
+            starsCount = 30; // Starting bonus for early shopping
+            wave = 1;
+            playerLevel = 1;
+            playerXp = 0;
+            nextLevelXp = 100;
+            player.x = WORLD_WIDTH / 2;
+            player.y = WORLD_HEIGHT / 2;
+            player.maxHealth = 100;
+            player.health = 100;
+            player.baseSpeed = 6;
+            player.speed = 6;
+            player.trail = [];
+
+            upgrades.speed = { level: 1, cost: 50, costMult: 1.6 };
+            upgrades.damage = { level: 1, cost: 60, costMult: 1.7 };
+            upgrades.health = { level: 1, cost: 75, costMult: 1.8 };
+            upgrades.multishot = { level: 1, cost: 120, costMult: 2.0 };
+
+            bullets = [];
+            enemyBullets = [];
+            enemies = [];
+            items = [];
+            particles = [];
+            floatingTexts = [];
+            
+            spawnWaveEnemies();
+            updateHUD();
+            updateShopUI();
+        }
+
+        function updateHUD() {
+            document.getElementById('scoreVal').innerText = Math.floor(score);
+            document.getElementById('starsVal').innerText = starsCount;
+            document.getElementById('healthVal').innerText = `${Math.max(0, Math.floor(player.health))} / ${player.maxHealth}`;
+            document.getElementById('waveVal').innerText = wave;
+            document.getElementById('levelVal').innerText = playerLevel;
+            
+            const xpPercent = Math.min(100, (playerXp / nextLevelXp) * 100);
+            document.getElementById('xpBar').style.width = `${xpPercent}%`;
+        }
+
+        function updateShopUI() {
+            document.getElementById('shopStarsVal').innerText = starsCount;
+            
+            document.getElementById('lvlSpeed').innerText = `Seviye ${upgrades.speed.level}`;
+            document.getElementById('costSpeed').innerText = `${upgrades.speed.cost} Yıldız`;
+
+            document.getElementById('lvlDamage').innerText = `Seviye ${upgrades.damage.level}`;
+            document.getElementById('costDamage').innerText = `${upgrades.damage.cost} Yıldız`;
+
+            document.getElementById('lvlHealth').innerText = `Seviye ${upgrades.health.level}`;
+            document.getElementById('costHealth').innerText = `${upgrades.health.cost} Yıldız`;
+
+            document.getElementById('lvlMultishot').innerText = `Seviye ${upgrades.multishot.level}`;
+            document.getElementById('costMultishot').innerText = `${upgrades.multishot.cost} Yıldız`;
+        }
+
+        window.buyUpgrade = function(type) {
+            const upg = upgrades[type];
+            if (starsCount >= upg.cost) {
+                starsCount -= upg.cost;
+                upg.level++;
+                upg.cost = Math.floor(upg.cost * upg.costMult);
+                soundFX.playStar();
+
+                if (type === 'speed') {
+                    player.speed = player.baseSpeed * (1 + (upg.level - 1) * 0.15);
+                } else if (type === 'health') {
+                    player.maxHealth = 100 + (upg.level - 1) * 40;
+                    player.health = player.maxHealth;
+                }
+                updateHUD();
+                updateShopUI();
+            } else {
+                const btn = event.target;
+                btn.classList.add('bg-red-500');
+                setTimeout(() => btn.classList.remove('bg-red-500'), 300);
+            }
+        };
+
+        function openShop() {
+            gameState = 'SHOP';
+            updateShopUI();
+            document.getElementById('shopMenu').classList.remove('hidden');
+        }
+
+        function closeShop() {
+            gameState = 'PLAYING';
+            document.getElementById('shopMenu').classList.add('hidden');
+        }
+
+        function addFloatingText(text, x, y, color) {
+            floatingTexts.push({ text, x, y, alpha: 1, color, vy: -1.2 });
+        }
+
+        function spawnWaveEnemies() {
+            const count = 4 + wave * 3;
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 600 + Math.random() * 800;
+                let x = player.x + Math.cos(angle) * dist;
+                let y = player.y + Math.sin(angle) * dist;
+
+                // Ensure within map bounds
+                x = Math.max(100, Math.min(WORLD_WIDTH - 100, x));
+                y = Math.max(100, Math.min(WORLD_HEIGHT - 100, y));
+
+                // Determine enemy type based on wave & random
+                const rand = Math.random();
+                let type = 'runner'; // Fast melee
+                let maxHp = 50 + wave * 20;
+                let size = 22;
+                let speed = 2.5 + Math.random() * 1.0;
+                let color = '#ff0055'; // Pink/Red runner
+
+                if (wave >= 2 && rand > 0.55 && rand <= 0.85) {
+                    type = 'sniper'; // Shoots from distance
+                    maxHp = 40 + wave * 15;
+                    size = 20;
+                    speed = 1.8;
+                    color = '#a855f7'; // Purple sniper
+                } else if (wave >= 3 && rand > 0.85) {
+                    type = 'tank'; // Boss / Tank
+                    maxHp = 200 + wave * 60;
+                    size = 40;
+                    speed = 1.1;
+                    color = '#fbbf24'; // Gold tank
+                }
+
+                enemies.push({
+                    x, y, type, size, speed, maxHp, hp: maxHp, color,
+                    shootTimer: Math.random() * 60
+                });
+            }
+        }
+
+        function createParticles(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 1;
+                particles.push({
+                    x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                    alpha: 1, color, size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        function addExperience(amount) {
+            playerXp += amount;
+            if (playerXp >= nextLevelXp) {
+                playerXp -= nextLevelXp;
+                playerLevel++;
+                nextLevelXp = Math.floor(nextLevelXp * 1.3);
+                soundFX.playLevelUp();
+                player.health = player.maxHealth; // Full heal on level up
+                addFloatingText("SEVIYE ATLADIN!", player.x, player.y - 30, "#00ffcc");
+            }
+            updateHUD();
+        }
+
+        // Game update loop
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            score += 0.1;
+            if (screenShakeTimer > 0) screenShakeTimer--;
+
+            // Wave clearance check
+            if (enemies.length === 0) {
+                wave++;
+                spawnWaveEnemies();
+                // Spawn bonus rewards
+                for (let i = 0; i < 5 + wave; i++) {
+                    items.push({
+                        x: player.x + (Math.random() - 0.5) * 400,
+                        y: player.y + (Math.random() - 0.5) * 400,
+                        type: Math.random() > 0.3 ? 'star' : 'xp',
+                        size: 8
+                    });
+                }
+            }
+
+            // Player Movement (WASD / Arrows)
+            let dx = 0;
+            let dy = 0;
+            if (keys.w) dy -= 1;
+            if (keys.s) dy += 1;
+            if (keys.a) dx -= 1;
+            if (keys.d) dx += 1;
+
+            if (dx !== 0 && dy !== 0) {
+                dx *= 0.7071;
+                dy *= 0.7071;
+            }
+
+            player.x += dx * player.speed;
+            player.y += dy * player.speed;
+
+            // Clamp inside expanded world bounds
+            player.x = Math.max(player.size, Math.min(WORLD_WIDTH - player.size, player.x));
+            player.y = Math.max(player.size, Math.min(WORLD_HEIGHT - player.size, player.y));
+
+            player.trail.push({ x: player.x, y: player.y });
+            if (player.trail.length > 12) player.trail.shift();
+
+            // Smooth Camera Follow Player
+            camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
+            camera.y += (player.y - canvas.height / 2 - camera.y) * 0.1;
+            camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, camera.x));
+            camera.y = Math.max(0, Math.min(WORLD_HEIGHT - canvas.height, camera.y));
+
+            // Automatic Weapon Firing
+            player.shootCooldown--;
+            const fireInterval = Math.max(10, 24 - (playerLevel - 1) * 1.5);
+            if (player.shootCooldown <= 0 && enemies.length > 0) {
+                // Find closest enemy
+                let closest = enemies[0];
+                let minDist = Math.hypot(player.x - closest.x, player.y - closest.y);
+                for (let i = 1; i < enemies.length; i++) {
+                    let d = Math.hypot(player.x - enemies[i].x, player.y - enemies[i].y);
+                    if (d < minDist) {
+                        minDist = d;
+                        closest = enemies[i];
+                    }
+                }
+
+                const baseAngle = Math.atan2(closest.y - player.y, closest.x - player.x);
+                const bulletSpeed = 14;
+                const damage = 30 * (1 + (upgrades.damage.level - 1) * 0.3);
+                const multiLevel = upgrades.multishot.level;
+
+                // Multishot spreads
+                let angles = [baseAngle];
+                if (multiLevel === 2) angles = [baseAngle - 0.15, baseAngle + 0.15];
+                else if (multiLevel >= 3) angles = [baseAngle - 0.25, baseAngle, baseAngle + 0.25];
+
+                angles.forEach(angle => {
+                    bullets.push({
+                        x: player.x, y: player.y,
+                        vx: Math.cos(angle) * bulletSpeed,
+                        vy: Math.sin(angle) * bulletSpeed,
+                        damage, size: 5
+                    });
+                });
+
+                soundFX.playShoot();
+                player.shootCooldown = fireInterval;
+            }
+
+            // Update Player Bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+
+                // Offscreen world check
+                if (b.x < 0 || b.x > WORLD_WIDTH || b.y < 0 || b.y > WORLD_HEIGHT) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // Enemy collision
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    let dist = Math.hypot(b.x - e.x, b.y - e.y);
+                    if (dist < e.size + b.size) {
+                        e.hp -= b.damage;
+                        createParticles(b.x, b.y, '#00ffff', 4);
+                        addFloatingText(`-${Math.floor(b.damage)}`, e.x, e.y - e.size, '#ff0055');
+                        bullets.splice(i, 1);
+
+                        if (e.hp <= 0) {
+                            soundFX.playExplosion();
+                            screenShakeTimer = 8;
+                            score += e.type === 'tank' ? 500 : 150;
+                            
+                            // Drop generous bounties (stars and xp)
+                            const dropCount = e.type === 'tank' ? 8 : 3;
+                            for (let d = 0; d < dropCount; d++) {
+                                items.push({
+                                    x: e.x + (Math.random() - 0.5) * 40,
+                                    y: e.y + (Math.random() - 0.5) * 40,
+                                    type: Math.random() > 0.4 ? 'star' : 'xp',
+                                    size: 9
+                                });
+                            }
+                            createParticles(e.x, e.y, e.color, 25);
+                            enemies.splice(j, 1);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Update Enemy Projectiles
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                let eb = enemyBullets[i];
+                eb.x += eb.vx;
+                eb.y += eb.vy;
+
+                let distToPlayer = Math.hypot(player.x - eb.x, player.y - eb.y);
+                if (distToPlayer < player.size + eb.size) {
+                    soundFX.playHit();
+                    player.health -= eb.damage;
+                    screenShakeTimer = 5;
+                    createParticles(player.x, player.y, '#ff007f', 8);
+                    enemyBullets.splice(i, 1);
+
+                    if (player.health <= 0) triggerGameOver();
+                    continue;
+                }
+
+                if (eb.x < 0 || eb.x > WORLD_WIDTH || eb.y < 0 || eb.y > WORLD_HEIGHT) {
+                    enemyBullets.splice(i, 1);
+                }
+            }
+
+            // Update Enemies behavior
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                let angle = Math.atan2(player.y - e.y, player.x - e.x);
+
+                if (e.type === 'runner') {
+                    // Fast direct chase
+                    e.x += Math.cos(angle) * e.speed;
+                    e.y += Math.sin(angle) * e.speed;
+                } else if (e.type === 'sniper') {
+                    // Keeps distance
+                    let dist = Math.hypot(player.x - e.x, player.y - e.y);
+                    if (dist > 320) {
+                        e.x += Math.cos(angle) * e.speed;
+                        e.y += Math.sin(angle) * e.speed;
+                    } else if (dist < 220) {
+                        e.x -= Math.cos(angle) * e.speed;
+                        e.y -= Math.sin(angle) * e.speed;
+                    }
+                    e.shootTimer++;
+                    if (e.shootTimer > 90) {
+                        e.shootTimer = 0;
+                        enemyBullets.push({
+                            x: e.x, y: e.y,
+                            vx: Math.cos(angle) * 7,
+                            vy: Math.sin(angle) * 7,
+                            damage: 15, size: 6
+                        });
+                    }
+                } else if (e.type === 'tank') {
+                    // Slow relentless giant
+                    e.x += Math.cos(angle) * e.speed;
+                    e.y += Math.sin(angle) * e.speed;
+                }
+
+                // Collision with player
+                let distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
+                if (distToPlayer < player.size + e.size * 0.75) {
+                    player.health -= 0.4;
+                    if (Math.random() < 0.1) soundFX.playHit();
+                    if (player.health <= 0) triggerGameOver();
+                }
+            }
+
+            // Update Magnet Items (Stars & XP)
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                let distToPlayer = Math.hypot(player.x - item.x, player.y - item.y);
+                
+                // Magnet pull if close
+                if (distToPlayer < 180) {
+                    let angle = Math.atan2(player.y - item.y, player.x - item.x);
+                    item.x += Math.cos(angle) * 7;
+                    item.y += Math.sin(angle) * 7;
+                }
+
+                if (distToPlayer < player.size + item.size) {
+                    if (item.type === 'star') {
+                        soundFX.playStar();
+                        starsCount += 2;
+                        score += 30;
+                        addFloatingText("+2 Yıldız", item.x, item.y, "#fbbf24");
+                    } else {
+                        addExperience(25);
+                        addFloatingText("+25 XP", item.x, item.y, "#818cf8");
+                    }
+                    createParticles(item.x, item.y, item.type === 'star' ? '#fbbf24' : '#818cf8', 6);
+                    items.splice(i, 1);
+                }
+            }
+
+            // Update Floating Texts
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                let ft = floatingTexts[i];
+                ft.y += ft.vy;
+                ft.alpha -= 0.02;
+                if (ft.alpha <= 0) floatingTexts.splice(i, 1);
+            }
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let pt = particles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.alpha -= 0.03;
+                if (pt.alpha <= 0) particles.splice(i, 1);
+            }
+
+            updateHUD();
+        }
+
+        // Draw loop
+        function draw() {
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Screen shake effect
+            if (screenShakeTimer > 0) {
+                const shakeX = (Math.random() - 0.5) * 8;
+                const shakeY = (Math.random() - 0.5) * 8;
+                ctx.translate(shakeX, shakeY);
+            }
+
+            // Translate camera offset
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+
+            // Draw World Cyber Grid & Boundaries
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.07)';
+            ctx.lineWidth = 1.5;
+            const gridSize = 100;
+            for (let x = 0; x <= WORLD_WIDTH; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_HEIGHT); ctx.stroke();
+            }
+            for (let y = 0; y <= WORLD_HEIGHT; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD_WIDTH, y); ctx.stroke();
+            }
+
+            // World border glow box
+            ctx.strokeStyle = '#00f3ff';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#00f3ff';
+            ctx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+            ctx.shadowBlur = 0;
+
+            // Draw Items (Stars & XP)
+            items.forEach(item => {
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                ctx.fillStyle = item.type === 'star' ? '#fbbf24' : '#818cf8';
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.beginPath();
+                ctx.arc(0, 0, item.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // Draw Particles
+            particles.forEach(pt => {
+                ctx.save();
+                ctx.globalAlpha = pt.alpha;
+                ctx.fillStyle = pt.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = pt.color;
+                ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            });
+
+            // Draw Bullets
+            bullets.forEach(b => {
+                ctx.save();
+                ctx.fillStyle = '#00ffff';
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#00ffff';
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            });
+
+            enemyBullets.forEach(eb => {
+                ctx.save();
+                ctx.fillStyle = '#ff007f';
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#ff007f';
+                ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.size, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            });
+
+            // Draw Enemies with Health Bars
+            enemies.forEach(e => {
+                ctx.save();
+                ctx.translate(e.x, e.y);
+                ctx.fillStyle = e.color;
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = e.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, e.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, e.size * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Floating health bar above enemy
+                const barWidth = 40;
+                const barHeight = 5;
+                const hpPercent = Math.max(0, e.hp / e.maxHp);
+                ctx.save();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.fillRect(e.x - barWidth / 2 - 1, e.y - e.size - 14, barWidth + 2, barHeight + 2);
+                ctx.fillStyle = '#ff0055';
+                ctx.fillRect(e.x - barWidth / 2, e.y - e.size - 13, barWidth, barHeight);
+                ctx.fillStyle = '#00ffcc';
+                ctx.fillRect(e.x - barWidth / 2, e.y - e.size - 13, barWidth * hpPercent, barHeight);
+                ctx.restore();
+            });
+
+            // Draw Player Trail
+            player.trail.forEach((t, index) => {
+                let ratio = index / player.trail.length;
+                ctx.save();
+                ctx.fillStyle = player.color;
+                ctx.globalAlpha = ratio * 0.4;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = player.color;
+                ctx.beginPath(); ctx.arc(t.x, t.y, player.size * ratio * 0.75, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            });
+
+            // Draw Player Ship
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = player.color;
+            ctx.beginPath(); ctx.arc(0, 0, player.size, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = player.color;
+            ctx.beginPath(); ctx.arc(0, 0, player.size * 0.55, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+
+            // Draw Floating Texts
+            floatingTexts.forEach(ft => {
+                ctx.save();
+                ctx.globalAlpha = ft.alpha;
+                ctx.font = 'bold 14px Orbitron';
+                ctx.fillStyle = ft.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = ft.color;
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            });
+
+            ctx.restore(); // Restore camera
+            ctx.restore(); // Restore screen shake
+
+            // Draw Minimap
+            drawMinimap();
+        }
+
+        function drawMinimap() {
+            minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+            
+            const scaleX = minimapCanvas.width / WORLD_WIDTH;
+            const scaleY = minimapCanvas.height / WORLD_HEIGHT;
+
+            // Draw border bounds on minimap
+            minimapCtx.strokeStyle = 'rgba(0, 243, 255, 0.4)';
+            minimapCtx.strokeRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+            // Draw Enemies on minimap
+            enemies.forEach(e => {
+                minimapCtx.fillStyle = e.color;
+                minimapCtx.fillRect(e.x * scaleX - 1.5, e.y * scaleY - 1.5, 3, 3);
+            });
+
+            // Draw Player on minimap
+            minimapCtx.fillStyle = '#00ffff';
+            minimapCtx.beginPath();
+            minimapCtx.arc(player.x * scaleX, player.y * scaleY, 3, 0, Math.PI * 2);
+            minimapCtx.fill();
+        }
+
+        function gameLoop(timestamp) {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            soundFX.playExplosion();
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('minimapContainer').classList.add('hidden');
+            document.getElementById('gameOverMenu').classList.remove('hidden');
+            document.getElementById('finalWave').innerText = wave;
+            document.getElementById('finalScore').innerText = Math.floor(score);
+
+            const finalScr = Math.floor(score);
+            if (finalScr > highScore) {
+                highScore = finalScr;
+                localStorage.setItem('neon_rpg_highscore', highScore);
+            }
+            document.getElementById('highScore').innerText = highScore;
+        }
+
+        // Button Event Listeners
+        document.getElementById('startBtn').addEventListener('click', () => {
+            soundFX.init();
+            resetGame();
+            gameState = 'PLAYING';
+            document.getElementById('startMenu').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('minimapContainer').classList.remove('hidden');
+        });
+
+        document.getElementById('openShopBtn').addEventListener('click', () => {
+            if (gameState === 'PLAYING') openShop();
+        });
+
+        document.getElementById('closeShopBtn').addEventListener('click', () => {
+            closeShop();
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            resetGame();
+            gameState = 'PLAYING';
+            document.getElementById('gameOverMenu').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('minimapContainer').classList.remove('hidden');
+        });
+
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                document.getElementById('pauseMenu').classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('resumeBtn').addEventListener('click', () => {
+            gameState = 'PLAYING';
+            document.getElementById('pauseMenu').classList.add('hidden');
+        });
+
+        document.getElementById('quitBtn').addEventListener('click', () => {
+            gameState = 'START';
+            document.getElementById('pauseMenu').classList.add('hidden');
+            document.getElementById('shopMenu').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('minimapContainer').classList.add('hidden');
+            document.getElementById('startMenu').classList.remove('hidden');
+        });
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

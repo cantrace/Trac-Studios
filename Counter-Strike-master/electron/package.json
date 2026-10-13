@@ -1,0 +1,11 @@
+{
+    "main": "main.js",
+    "scripts": {
+        "dev": "electron --no-sandbox .",
+        "build": "electron-packager . build --platform=all --asar --executable-name=start_game --extra-resource=../www/ --out=build"
+    },
+    "devDependencies": {
+        "electron": "*",
+        "@electron/packager": "*"
+    }
+}
