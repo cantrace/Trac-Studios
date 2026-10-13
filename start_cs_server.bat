@@ -1,12 +1,16 @@
 @echo off
-title Trac Studios - Counter-Strike Dedicated Server
+title Trac Studios - CS 1.6 Web Dedicated Server
 echo ========================================================
-echo   TRAC STUDIOS - COUNTER-STRIKE 3D LAN SERVER
+echo   TRAC STUDIOS - COUNTER-STRIKE 1.6 WEB EDITION
 echo ========================================================
 echo.
-echo Sunucu port 8081 uzerinde baslatiliyor...
-echo Arkadaslariniz ayni WiFi veya okul aginda bu sunucuya baglanabilir.
-echo.
-cd Counter-Strike-master
-node server-node.js
+cd cs16-web-main
+echo Docker Compose baslatiliyor (cs16-web-main)...
+docker compose up
+if %errorlevel% neq 0 (
+    echo.
+    echo [BILGI] Docker Desktop yuklu veya acik degilse:
+    echo 1. Docker Desktop uygulamasini baslatin veya kurun.
+    echo 2. Veya tarayicidan Dogrudan 'WebXash' veya 'Play-CS' uzerinden oynayin!
+)
 pause

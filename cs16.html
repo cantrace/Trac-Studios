@@ -174,37 +174,42 @@
       background: #000000;
     }
 
-    /* LAN Setup Banner (if running local docker) */
+    /* LAN Setup Banner */
     #lan-banner {
       position: absolute;
-      top: 16px;
+      top: 14px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(12, 12, 16, 0.94);
+      background: rgba(12, 12, 16, 0.96);
+      backdrop-filter: blur(12px);
       border: 1px solid rgba(0, 245, 212, 0.4);
       border-radius: 12px;
-      padding: 12px 20px;
+      padding: 10px 18px;
       font-size: 13px;
       color: #e2e8f0;
-      display: none;
+      display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       z-index: 50;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
-      max-width: 600px;
-      width: 90%;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85);
+      max-width: 680px;
+      width: 92%;
     }
 
     #lan-banner input {
       background: #000;
       border: 1px solid #333;
       color: #00f5d4;
-      padding: 5px 10px;
+      padding: 6px 12px;
       border-radius: 6px;
       font-family: monospace;
       font-size: 12px;
-      width: 170px;
+      flex: 1;
       outline: none;
+    }
+
+    #lan-banner input:focus {
+      border-color: #00f5d4;
     }
 
     /* Floating Controls Bar at Bottom */
@@ -272,6 +277,73 @@
       line-height: 1.6;
       white-space: pre;
     }
+
+    /* Guide Modal */
+    #guide-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-card {
+      background: #0d0f14;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      max-width: 580px;
+      width: 100%;
+      padding: 28px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+      position: relative;
+    }
+
+    .modal-card h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-card p {
+      font-size: 13.5px;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .code-box {
+      background: #000;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #00f5d4;
+      margin: 12px 0;
+      user-select: all;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .modal-close:hover {
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -290,14 +362,14 @@
 
     <!-- Server Mode Tabs -->
     <div class="server-tabs">
-      <button class="server-tab active" id="tab-web" onclick="switchServerMode('web')">
-        <span>🌐</span> Çok Oyunculu (WebRTC)
+      <button class="server-tab active" id="tab-lan" onclick="switchServerMode('lan')">
+        <span>🖥️</span> cs16-web-main (LAN / Yerel)
       </button>
-      <button class="server-tab" id="tab-lan" onclick="switchServerMode('lan')">
-        <span>🖥️</span> cs16-web LAN Sunucusu
+      <button class="server-tab" id="tab-webxash" onclick="switchServerMode('webxash')">
+        <span>🌐</span> WebXash CS 1.6 (WebAssembly)
       </button>
-      <button class="server-tab" id="tab-practice" onclick="switchServerMode('practice')">
-        <span>🎯</span> Poligon (Solo)
+      <button class="server-tab" id="tab-playcs" onclick="switchServerMode('playcs')">
+        <span>⚡</span> Play-CS Canlı Sunucular
       </button>
     </div>
 
@@ -317,13 +389,14 @@
 
   <!-- Game Container -->
   <div id="game-container">
-    <iframe id="game-frame" src="Counter-Strike-master/www/index.html?mode=p2p&role=host" allow="autoplay; fullscreen; pointer-lock"></iframe>
+    <iframe id="game-frame" src="http://localhost:27016" allow="autoplay; fullscreen; pointer-lock"></iframe>
 
     <!-- LAN Server Custom IP Prompt -->
     <div id="lan-banner">
-      <span>🖥️ <b>cs16-web-main</b> Yerel Sunucu Adresi:</span>
+      <span>🖥️ <b>cs16-web-main</b> Sunucu:</span>
       <input type="text" id="lan-ip-input" value="http://localhost:27016" placeholder="http://192.168.1.x:27016">
       <button class="btn" onclick="connectCustomLan()" style="background:#00f5d4;color:#000;border:none;font-weight:700;">Bağlan</button>
+      <button class="btn" onclick="openGuide()" style="border-color:rgba(255,255,255,0.2);">💡 Rehber</button>
       <button class="btn" onclick="document.getElementById('lan-banner').style.display='none'">✕</button>
     </div>
 
@@ -336,6 +409,30 @@
       <span><kbd>R</kbd> Şarjör</span>
       <span><kbd>Ctrl</kbd> Çömel</span>
       <span><kbd>H</kbd> 🚨 Acil Gizle</span>
+    </div>
+  </div>
+
+  <!-- Guide Modal -->
+  <div id="guide-modal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeGuide()">✕</button>
+      <h2>🎮 cs16-web-main Sunucusu Nasıl Başlatılır?</h2>
+      <p>
+        Bilgisayarında <b>Docker Desktop</b> açıkken terminalde veya proje klasöründe şu komutu çalıştır:
+      </p>
+      <div class="code-box">docker compose up</div>
+      <p>
+        Sunucu açıldığında <b>http://localhost:27016</b> adresinde CS 1.6 Web sunucun canlıya geçecektir.
+      </p>
+      <p>
+        <b>Arkadaşlarınla oynamak için:</b> Bilgisayarının Yerel IP adresini (örn: <code>http://192.168.1.50:27016</code>) yukarıdaki çubuğa yazın ve bağlanın!
+      </p>
+      <p style="color:#00f5d4;">
+        💡 <i>Kurulum yapmadan hemen oynamak için yukarıdaki <b>"WebXash CS 1.6"</b> veya <b>"Play-CS"</b> sekmelerine tıklayabilirsin!</i>
+      </p>
+      <button class="btn" onclick="closeGuide()" style="width:100%;justify-content:center;padding:10px;background:#00f5d4;color:#000;font-weight:700;margin-top:10px;">
+        Anladım, Kapat
+      </button>
     </div>
   </div>
 
@@ -379,18 +476,19 @@
 
     function switchServerMode(mode) {
       document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
-      document.getElementById('tab-' + mode).classList.add('active');
+      const activeBtn = document.getElementById('tab-' + mode);
+      if (activeBtn) activeBtn.classList.add('active');
 
-      if (mode === 'web') {
-        lanBanner.style.display = 'none';
-        iframe.src = 'Counter-Strike-master/www/index.html?mode=p2p&room=TRAC-CS&role=host';
-      } else if (mode === 'lan') {
+      if (mode === 'lan') {
         lanBanner.style.display = 'flex';
         const customIp = document.getElementById('lan-ip-input').value.trim() || 'http://localhost:27016';
         iframe.src = customIp;
-      } else if (mode === 'practice') {
+      } else if (mode === 'webxash') {
         lanBanner.style.display = 'none';
-        iframe.src = 'Counter-Strike-master/www/index.html?mode=practice';
+        iframe.src = 'https://x8bitrain.github.io/webXash/';
+      } else if (mode === 'playcs') {
+        lanBanner.style.display = 'none';
+        iframe.src = 'https://play-cs.com/en/servers';
       }
     }
 
@@ -399,6 +497,28 @@
       if (url) {
         iframe.src = url;
       }
+    }
+
+    function openGuide() {
+      document.getElementById('guide-modal').style.display = 'flex';
+    }
+
+    function closeGuide() {
+      document.getElementById('guide-modal').style.display = 'none';
+    }
+
+    // URL parameter parsing
+    const urlParams = new URLSearchParams(window.location.search);
+    const modeParam = urlParams.get('mode');
+    const ipParam = urlParams.get('ip');
+
+    if (ipParam) {
+      document.getElementById('lan-ip-input').value = ipParam;
+      switchServerMode('lan');
+    } else if (modeParam === 'webxash') {
+      switchServerMode('webxash');
+    } else if (modeParam === 'playcs') {
+      switchServerMode('playcs');
     }
 
     // Fullscreen Toggle

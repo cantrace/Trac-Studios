@@ -574,7 +574,7 @@
         </div>
 
         <div class="hero-actions-bar">
-          <button class="btn-play-hero" onclick="launchGameTheater('Counter-Strike-master/www/index.html?mode=p2p&role=host', 'Counter-Strike 1.6 Web')">
+          <button class="btn-play-hero" onclick="window.location.href='cs16.html'">
             <span>🔥</span> HEMEN OYNA
           </button>
 
@@ -713,8 +713,7 @@
     function joinWithCode(role) {
       const codeInput = document.getElementById('main-room-code');
       const cleanCode = (codeInput.value || 'TRAC101').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '') || 'TRAC101';
-      const targetUrl = 'Counter-Strike-master/www/index.html?mode=p2p&room=' + encodeURIComponent(cleanCode) + '&role=' + role;
-      launchGameTheater(targetUrl, 'Counter-Strike 1.6 (Oda: ' + cleanCode + ')');
+      window.location.href = 'cs16.html?room=' + encodeURIComponent(cleanCode) + '&role=' + role;
     }
 
     function copyShareLink() {
